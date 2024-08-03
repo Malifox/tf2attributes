@@ -55,6 +55,7 @@ enum CEconItemAttributeDefinition64
 	AttrDef_m_nDefIndex =			8,	//0x08 // u32
 	AttrDef_m_pAttrType =			16,	//0x10, ISchemaAttributeType*
 	AttrDef_m_bStoredAsInteger =	26,	//0x1A
+	AttrDef_m_pszAttributeName =	0x48,
 }
 
 //CEconItemDefinition offsets
@@ -215,6 +216,15 @@ enum struct CEconItemAttributeDefinition
 		return value[0];
 	}
 
+	int LoadStringPointer(CEconItemAttributeDefinition64 offset, char[] buffer, int maxlen) {
+		Address64 p;
+		p.Set(this);
+		
+		Address64 pstr;
+		p.DereferencePointer(view_as<int>(offset), pstr);
+		return pstr.LoadString(buffer, maxlen);
+	}
+
 	bool Equals(CEconItemAttributeDefinition other)
 	{
 		return this.low == other.low && this.high == other.high;
@@ -356,7 +366,7 @@ public void OnPluginStart()
 	PrepSDKCall_SetReturnInfo(SDKType_Pointer, SDKPass_Plain);
 	hSDKRemoveAttribute = EndPrepSDKCall();
 	if (!hSDKRemoveAttribute) {
-		SetFailState("Could not initialize call to CAttributeList::RemoveAttribute");
+		LogMessage("Could not initialize call to CAttributeList::RemoveAttribute; using vscript fallback");
 	}
 
 	StartPrepSDKCall(SDKCall_Raw);
@@ -371,7 +381,7 @@ public void OnPluginStart()
 
 	hSDKSetRuntimeValue = EndPrepSDKCall();
 	if (!hSDKSetRuntimeValue) {
-		SetFailState("Could not initialize call to CAttributeList::SetRuntimeAttributeValue");
+		LogMessage("Could not initialize call to CAttributeList::SetRuntimeAttributeValue; using vscript fallback");
 	}
 
 	StartPrepSDKCall(SDKCall_Raw);
@@ -765,7 +775,16 @@ public int Native_SetAttrib(Handle plugin, int numParams)
 		return ThrowNativeError(SP_ERROR_NATIVE, "Attribute name '%s' is invalid", strAttrib);
 	}
 
-	SDKCall(hSDKSetRuntimeValue, pEntAttributeList, pEconItemAttributeDefinition, flVal);
+	if (hSDKSetRuntimeValue) {
+		SDKCall(hSDKSetRuntimeValue, pEntAttributeList, pEconItemAttributeDefinition, flVal);
+	} else {
+		// ensure we get exact representations of the original input value
+		char script[192];
+		Format(script, sizeof(script), "self.AddAttribute(\"%s\", casti2f(%d), 0)", strAttrib,
+				view_as<int>(flVal));
+		SetVariantString(script);
+		AcceptEntityInput(entity, "RunScriptCode");
+	}
 	return true;
 }
 
@@ -793,8 +812,20 @@ public int Native_SetAttribByID(Handle plugin, int numParams)
 	if (pEconItemAttributeDefinition.IsNull()) {
 		return ThrowNativeError(SP_ERROR_NATIVE, "Attribute index %d is invalid", iAttrib);
 	}
-
-	SDKCall(hSDKSetRuntimeValue, pEntAttributeList, pEconItemAttributeDefinition, flVal);
+	
+	if (hSDKSetRuntimeValue) {
+		SDKCall(hSDKSetRuntimeValue, pEntAttributeList, pEconItemAttributeDefinition, flVal);
+	} else {
+		char strAttrib[128];
+		pEconItemAttributeDefinition.LoadStringPointer(AttrDef_m_pszAttributeName, strAttrib, sizeof(strAttrib));
+		
+		// ensure we get exact representations of the original input value
+		char script[192];
+		Format(script, sizeof(script), "self.AddAttribute(\"%s\", casti2f(%d), 0)", strAttrib,
+				view_as<int>(flVal));
+		SetVariantString(script);
+		AcceptEntityInput(entity, "RunScriptCode");
+	}
 	return true;
 }
 
@@ -915,7 +946,15 @@ public int Native_Remove(Handle plugin, int numParams)
 
 	Address64 uselessReturn;
 
-	SDKCall(hSDKRemoveAttribute, pEntAttributeList, uselessReturn, pEconItemAttributeDefinition);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
+	if (hSDKRemoveAttribute) {
+		SDKCall(hSDKRemoveAttribute, pEntAttributeList, uselessReturn, pEconItemAttributeDefinition);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
+	} else {
+		// ensure we get exact representations of the original input value
+		char script[192];
+		Format(script, sizeof(script), "self.RemoveAttribute(\"%s\")", strAttrib);
+		SetVariantString(script);
+		AcceptEntityInput(entity, "RunScriptCode");
+	}
 	return true;
 }
 
@@ -945,7 +984,18 @@ public int Native_RemoveByID(Handle plugin, int numParams)
 
 	Address64 uselessReturn;
 
-	SDKCall(hSDKRemoveAttribute, pEntAttributeList, uselessReturn, pEconItemAttributeDefinition);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
+	if (hSDKRemoveAttribute) {
+		SDKCall(hSDKRemoveAttribute, pEntAttributeList, uselessReturn, pEconItemAttributeDefinition);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
+	} else {
+		char strAttrib[128];
+		pEconItemAttributeDefinition.LoadStringPointer(AttrDef_m_pszAttributeName, strAttrib, sizeof(strAttrib));
+		
+		// ensure we get exact representations of the original input value
+		char script[192];
+		Format(script, sizeof(script), "self.RemoveAttribute(\"%s\")", strAttrib);
+		SetVariantString(script);
+		AcceptEntityInput(entity, "RunScriptCode");
+	}
 	return true;
 }
 
