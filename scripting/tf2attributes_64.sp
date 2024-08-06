@@ -55,6 +55,7 @@ enum CEconItemAttributeDefinition64
 	AttrDef_m_nDefIndex =			8,	//0x08 // u32
 	AttrDef_m_pAttrType =			16,	//0x10, ISchemaAttributeType*
 	AttrDef_m_bStoredAsInteger =	26,	//0x1A
+	AttrDef_m_pszAttributeName =	0x48,
 }
 
 //CEconItemDefinition offsets
@@ -90,7 +91,7 @@ Handle hSDKRemoveAttribute;
 Handle hSDKDestroyAllAttributes;
 Handle hSDKAddCustomAttribute;
 Handle hSDKRemoveCustomAttribute;
-Handle hSDKAttributeHookFloat;
+Handle hSDKAttributeHookFloat, hSDKAttributeHookFloat64;
 Handle hSDKAttributeHookInt;
 
 // these two are mutually exclusive
@@ -213,6 +214,15 @@ enum struct CEconItemAttributeDefinition
 		Port64_LoadFromAddress(this, view_as<int>(offset), numberType, value);
 
 		return value[0];
+	}
+
+	int LoadStringPointer(CEconItemAttributeDefinition64 offset, char[] buffer, int maxlen) {
+		Address64 p;
+		p.Set(this);
+		
+		Address64 pstr;
+		p.DereferencePointer(view_as<int>(offset), pstr);
+		return pstr.LoadString(buffer, maxlen);
 	}
 
 	bool Equals(CEconItemAttributeDefinition other)
@@ -356,7 +366,7 @@ public void OnPluginStart()
 	PrepSDKCall_SetReturnInfo(SDKType_Pointer, SDKPass_Plain);
 	hSDKRemoveAttribute = EndPrepSDKCall();
 	if (!hSDKRemoveAttribute) {
-		SetFailState("Could not initialize call to CAttributeList::RemoveAttribute");
+		LogMessage("Could not initialize call to CAttributeList::RemoveAttribute; using vscript fallback");
 	}
 
 	StartPrepSDKCall(SDKCall_Raw);
@@ -371,7 +381,7 @@ public void OnPluginStart()
 
 	hSDKSetRuntimeValue = EndPrepSDKCall();
 	if (!hSDKSetRuntimeValue) {
-		SetFailState("Could not initialize call to CAttributeList::SetRuntimeAttributeValue");
+		LogMessage("Could not initialize call to CAttributeList::SetRuntimeAttributeValue; using vscript fallback");
 	}
 
 	StartPrepSDKCall(SDKCall_Raw);
@@ -426,6 +436,19 @@ public void OnPluginStart()
 	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain); // initial value. fox, Is now the last parameter for some reason
 	hSDKAttributeHookFloat = EndPrepSDKCall();
 	if (!hSDKAttributeHookFloat) {
+		// hack for port64, float parameter still first on win64
+		StartPrepSDKCall(SDKCall_Static);
+		PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CAttributeManager::AttribHookValue<float>_port64");
+		PrepSDKCall_SetReturnInfo(SDKType_Float, SDKPass_Plain);
+		PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
+		PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // attribute class
+		PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
+		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // CUtlVector<CBaseEntity*>, set to nullptr
+		PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool const_string
+		hSDKAttributeHookFloat = EndPrepSDKCall();
+	}
+	
+	if (!hSDKAttributeHookFloat && !hSDKAttributeHookFloat64) {
 		SetFailState("Could not initialize call to CAttributeManager::AttribHookValue<float>");
 	}
 
@@ -765,7 +788,16 @@ public int Native_SetAttrib(Handle plugin, int numParams)
 		return ThrowNativeError(SP_ERROR_NATIVE, "Attribute name '%s' is invalid", strAttrib);
 	}
 
-	SDKCall(hSDKSetRuntimeValue, pEntAttributeList, pEconItemAttributeDefinition, flVal);
+	if (hSDKSetRuntimeValue) {
+		SDKCall(hSDKSetRuntimeValue, pEntAttributeList, pEconItemAttributeDefinition, flVal);
+	} else {
+		// ensure we get exact representations of the original input value
+		char script[192];
+		Format(script, sizeof(script), "self.AddAttribute(\"%s\", casti2f(%d), 0)", strAttrib,
+				view_as<int>(flVal));
+		SetVariantString(script);
+		AcceptEntityInput(entity, "RunScriptCode");
+	}
 	return true;
 }
 
@@ -793,8 +825,20 @@ public int Native_SetAttribByID(Handle plugin, int numParams)
 	if (pEconItemAttributeDefinition.IsNull()) {
 		return ThrowNativeError(SP_ERROR_NATIVE, "Attribute index %d is invalid", iAttrib);
 	}
-
-	SDKCall(hSDKSetRuntimeValue, pEntAttributeList, pEconItemAttributeDefinition, flVal);
+	
+	if (hSDKSetRuntimeValue) {
+		SDKCall(hSDKSetRuntimeValue, pEntAttributeList, pEconItemAttributeDefinition, flVal);
+	} else {
+		char strAttrib[128];
+		pEconItemAttributeDefinition.LoadStringPointer(AttrDef_m_pszAttributeName, strAttrib, sizeof(strAttrib));
+		
+		// ensure we get exact representations of the original input value
+		char script[192];
+		Format(script, sizeof(script), "self.AddAttribute(\"%s\", casti2f(%d), 0)", strAttrib,
+				view_as<int>(flVal));
+		SetVariantString(script);
+		AcceptEntityInput(entity, "RunScriptCode");
+	}
 	return true;
 }
 
@@ -915,7 +959,15 @@ public int Native_Remove(Handle plugin, int numParams)
 
 	Address64 uselessReturn;
 
-	SDKCall(hSDKRemoveAttribute, pEntAttributeList, uselessReturn, pEconItemAttributeDefinition);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
+	if (hSDKRemoveAttribute) {
+		SDKCall(hSDKRemoveAttribute, pEntAttributeList, uselessReturn, pEconItemAttributeDefinition);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
+	} else {
+		// ensure we get exact representations of the original input value
+		char script[192];
+		Format(script, sizeof(script), "self.RemoveAttribute(\"%s\")", strAttrib);
+		SetVariantString(script);
+		AcceptEntityInput(entity, "RunScriptCode");
+	}
 	return true;
 }
 
@@ -945,7 +997,18 @@ public int Native_RemoveByID(Handle plugin, int numParams)
 
 	Address64 uselessReturn;
 
-	SDKCall(hSDKRemoveAttribute, pEntAttributeList, uselessReturn, pEconItemAttributeDefinition);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
+	if (hSDKRemoveAttribute) {
+		SDKCall(hSDKRemoveAttribute, pEntAttributeList, uselessReturn, pEconItemAttributeDefinition);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
+	} else {
+		char strAttrib[128];
+		pEconItemAttributeDefinition.LoadStringPointer(AttrDef_m_pszAttributeName, strAttrib, sizeof(strAttrib));
+		
+		// ensure we get exact representations of the original input value
+		char script[192];
+		Format(script, sizeof(script), "self.RemoveAttribute(\"%s\")", strAttrib);
+		SetVariantString(script);
+		AcceptEntityInput(entity, "RunScriptCode");
+	}
 	return true;
 }
 
@@ -1202,7 +1265,14 @@ public int Native_HookValueFloat(Handle plugin, int numParams)
 
 	int entity = GetNativeCell(3);
 
-	return SDKCall(hSDKAttributeHookFloat, attrClass, entity, Address64_Null, false, initial);
+	if (hSDKAttributeHookFloat) {
+		return SDKCall(hSDKAttributeHookFloat, attrClass, entity, Address64_Null, false, initial);
+	} else if (hSDKAttributeHookFloat64) {
+		return SDKCall(hSDKAttributeHookFloat, initial, attrClass, entity, Address64_Null, false);
+	}
+	// we should never reach this
+	ThrowError("No available SDKCall for CAttributeManager::AttribHookValue<float>");
+	return 0;
 }
 
 /* native float TF2Attrib_HookValueInt(int nInitial, const char[] attrClass, int iEntity); */
