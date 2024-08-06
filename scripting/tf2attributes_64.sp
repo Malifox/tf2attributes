@@ -91,7 +91,7 @@ Handle hSDKRemoveAttribute;
 Handle hSDKDestroyAllAttributes;
 Handle hSDKAddCustomAttribute;
 Handle hSDKRemoveCustomAttribute;
-Handle hSDKAttributeHookFloat;
+Handle hSDKAttributeHookFloat, hSDKAttributeHookFloat64;
 Handle hSDKAttributeHookInt;
 
 // these two are mutually exclusive
@@ -436,6 +436,19 @@ public void OnPluginStart()
 	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain); // initial value. fox, Is now the last parameter for some reason
 	hSDKAttributeHookFloat = EndPrepSDKCall();
 	if (!hSDKAttributeHookFloat) {
+		// hack for port64, float parameter still first on win64
+		StartPrepSDKCall(SDKCall_Static);
+		PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CAttributeManager::AttribHookValue<float>_port64");
+		PrepSDKCall_SetReturnInfo(SDKType_Float, SDKPass_Plain);
+		PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
+		PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // attribute class
+		PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
+		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // CUtlVector<CBaseEntity*>, set to nullptr
+		PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool const_string
+		hSDKAttributeHookFloat = EndPrepSDKCall();
+	}
+	
+	if (!hSDKAttributeHookFloat && !hSDKAttributeHookFloat64) {
 		SetFailState("Could not initialize call to CAttributeManager::AttribHookValue<float>");
 	}
 
@@ -1252,7 +1265,14 @@ public int Native_HookValueFloat(Handle plugin, int numParams)
 
 	int entity = GetNativeCell(3);
 
-	return SDKCall(hSDKAttributeHookFloat, attrClass, entity, Address64_Null, false, initial);
+	if (hSDKAttributeHookFloat) {
+		return SDKCall(hSDKAttributeHookFloat, attrClass, entity, Address64_Null, false, initial);
+	} else if (hSDKAttributeHookFloat64) {
+		return SDKCall(hSDKAttributeHookFloat, initial, attrClass, entity, Address64_Null, false);
+	}
+	// we should never reach this
+	ThrowError("No available SDKCall for CAttributeManager::AttribHookValue<float>");
+	return 0;
 }
 
 /* native float TF2Attrib_HookValueInt(int nInitial, const char[] attrClass, int iEntity); */
