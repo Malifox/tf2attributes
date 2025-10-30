@@ -1,9 +1,9 @@
 #pragma semicolon 1
+#pragma newdecls required
 
 #include <sourcemod>
 #include <sdktools>
-
-#pragma newdecls required
+#include <virtual_address>
 
 #define PLUGIN_NAME		"[TF2] TF2Attributes"
 #define PLUGIN_AUTHOR		"FlaminSarge"
@@ -63,8 +63,8 @@ enum struct CUtlVector
 	void Init()
 	{
 		// this.m_memory = view_as<Address>(0); // CUtlMemory<T> {T* m_pMemory, int m_nAllocationCount, int m_nGrowSize}
-		this.m_size = view_as<Address>(12);		 // int
-		// this.m_pElements = view_as<Address>(16); // T*
+		this.m_size = PointerSize + view_as<Address>(4 + 4); // 12/16
+		// this.m_pElements = this.m_size + PointerSize; // 16/24(+ 4 padding) T*
 	}
 }
 CUtlVector g_CUtlVector;
@@ -78,9 +78,18 @@ enum struct CAttributeList
 	void Init()
 	{
 		// vfptr = 0;
-		this.m_Attributes = view_as<Address>(4); //CUtlVector<CEconItemAttribute>
-		this.m_Attributes_m_Size = view_as<Address>(16); // m_Attributes + 12(sizeof(CUtlMemory), PointerSize + 4 + 4)
-		this.m_pManager = view_as<Address>(24);
+		this.m_Attributes = PointerSize; //CUtlVector<CEconItemAttribute>
+
+		if (PointerSize == view_as<Address>(8))
+		{
+			this.m_Attributes_m_Size = view_as<Address>(24); // m_Attributes + 16(sizeof(CUtlMemory), PointerSize + 4 + 4)
+			this.m_pManager = view_as<Address>(40);
+		}
+		else
+		{
+			this.m_Attributes_m_Size = view_as<Address>(16); // m_Attributes + 12(sizeof(CUtlMemory), PointerSize + 4 + 4)
+			this.m_pManager = view_as<Address>(24);
+		}
 	}
 }
 CAttributeList g_CAttributeList;
@@ -95,10 +104,20 @@ enum struct CEconItemAttribute
 	void Init()
 	{
 		//vfptr = 0;
-		this.m_iAttributeDefinitionIndex = view_as<Address>(4);
-		this.m_flValue = view_as<Address>(8);
-		this.m_nRefundableCurrency = view_as<Address>(12);
-		this.iSizeOf = 16;
+		this.m_iAttributeDefinitionIndex = PointerSize;
+
+		if (PointerSize == view_as<Address>(8))
+		{
+			this.m_flValue = view_as<Address>(12);
+			this.m_nRefundableCurrency = view_as<Address>(16);
+			this.iSizeOf = 24;
+		}
+		else
+		{
+			this.m_flValue = view_as<Address>(8);
+			this.m_nRefundableCurrency = view_as<Address>(12);
+			this.iSizeOf = 16;
+		}
 	}
 }
 CEconItemAttribute g_CEconItemAttribute;
@@ -112,26 +131,52 @@ enum struct CEconItemAttributeDefinition
 	void Init()
 	{
 		// this.m_pKVAttribute = view_as<Address>(0);
-		this.m_nDefIndex = view_as<Address>(4);
-		this.m_pAttrType = view_as<Address>(8);
-		// this.m_bHidden = view_as<Address>(12);
-		// this.m_bWebSchemaOutputForced = view_as<Address>(13);
-		this.m_bStoredAsInteger = view_as<Address>(14);
-		// this.m_bInstanceData = view_as<Address>(15);
-		// this.m_eAssetClassAttrExportRule = view_as<Address>(16);
-		// this.m_unAssetClassBucket = view_as<Address>(20);
-		// this.m_bIsSetBonus = view_as<Address>(24);
-		// this.m_iUserGenerationType = view_as<Address>(28);
-		// this.m_iEffectType = view_as<Address>(32);
-		// this.m_iDescriptionFormat = view_as<Address>(36);
-		// this.m_pszDescriptionString = view_as<Address>(40);
-		// this.m_pszArmoryDesc = view_as<Address>(44);
-		// this.m_pszDefinitionName = view_as<Address>(48);
-		// this.m_pszAttributeClass = view_as<Address>(52);
-		// this.m_bCanAffectMarketName = view_as<Address>(56);
-		// this.m_bCanAffectRecipeComponentName = view_as<Address>(57);
-		// this.m_ItemDefinitionTag = view_as<Address>(60);
-		// this.m_iszAttributeClass = view_as<Address>(64);
+		this.m_nDefIndex = PointerSize;
+
+		if (PointerSize == view_as<Address>(8))
+		{
+			this.m_pAttrType = view_as<Address>(16);
+			// this.m_bHidden = view_as<Address>(24);
+			// this.m_bWebSchemaOutputForced = view_as<Address>(25);
+			this.m_bStoredAsInteger = view_as<Address>(26);
+			// this.m_bInstanceData = view_as<Address>(27);
+			// this.m_eAssetClassAttrExportRule = view_as<Address>(28);
+			// this.m_unAssetClassBucket = view_as<Address>(32);
+			// this.m_bIsSetBonus = view_as<Address>(36);
+			// this.m_iUserGenerationType = view_as<Address>(40);
+			// this.m_iEffectType = view_as<Address>(44);
+			// this.m_iDescriptionFormat = view_as<Address>(48);
+			// this.m_pszDescriptionString = view_as<Address>(56);
+			// this.m_pszArmoryDesc = view_as<Address>(64);
+			// this.m_pszDefinitionName = view_as<Address>(72);
+			// this.m_pszAttributeClass = view_as<Address>(80);
+			// this.m_bCanAffectMarketName = view_as<Address>(88);
+			// this.m_bCanAffectRecipeComponentName = view_as<Address>(89);
+			// this.m_ItemDefinitionTag = view_as<Address>(92);
+			// this.m_iszAttributeClass = view_as<Address>(96);
+		}
+		else
+		{
+			this.m_pAttrType = view_as<Address>(8);
+			// this.m_bHidden = view_as<Address>(12);
+			// this.m_bWebSchemaOutputForced = view_as<Address>(13);
+			this.m_bStoredAsInteger = view_as<Address>(14);
+			// this.m_bInstanceData = view_as<Address>(15);
+			// this.m_eAssetClassAttrExportRule = view_as<Address>(16);
+			// this.m_unAssetClassBucket = view_as<Address>(20);
+			// this.m_bIsSetBonus = view_as<Address>(24);
+			// this.m_iUserGenerationType = view_as<Address>(28);
+			// this.m_iEffectType = view_as<Address>(32);
+			// this.m_iDescriptionFormat = view_as<Address>(36);
+			// this.m_pszDescriptionString = view_as<Address>(40);
+			// this.m_pszArmoryDesc = view_as<Address>(44);
+			// this.m_pszDefinitionName = view_as<Address>(48);
+			// this.m_pszAttributeClass = view_as<Address>(52);
+			// this.m_bCanAffectMarketName = view_as<Address>(56);
+			// this.m_bCanAffectRecipeComponentName = view_as<Address>(57);
+			// this.m_ItemDefinitionTag = view_as<Address>(60);
+			// this.m_iszAttributeClass = view_as<Address>(64);
+		}
 	}
 }
 CEconItemAttributeDefinition g_CEconItemAttributeDefinition;
@@ -150,19 +195,39 @@ enum struct CEconItem
 		// this.m_pszSmallIcon = PointerSize * view_as<Address>(2); // 8/16
 		// this.m_pszLargeIcon = PointerSize * view_as<Address>(3); // 12/24
 		// this.m_ulID = PointerSize * view_as<Address>(4); // 16/32
-		// this.m_unAccountID = view_as<Address>(24);
-		// this.m_unInventory = view_as<Address>(28);
-		// this.m_unDefIndex = view_as<Address>(32);
-		// this.m_unLevel = view_as<Address>(34);
-		// this.m_nQuality = view_as<Address>(35);
-		// this.m_unFlags = view_as<Address>(36);
-		// this.m_unOrigin = view_as<Address>(37);
-		// this.m_unStyle = view_as<Address>(38);
-		this.m_dirtyBits = view_as<Address>(39);
-		// this.m_EquipInstanceSingleton_m_unDefinitionIndex = view_as<Address>(40);
-		this.m_CustomAttribSingleton_m_unDefinitionIndex = view_as<Address>(44); // attribute_t + 0
-		this.m_CustomAttribSingleton_m_flValue = view_as<Address>(48);			 // attribute_t + 4
-		this.m_pCustomData = view_as<Address>(52);
+
+		if (PointerSize == view_as<Address>(8))
+		{
+			// this.m_unAccountID = view_as<Address>(40);
+			// this.m_unInventory = view_as<Address>(44);
+			// this.m_unDefIndex = view_as<Address>(48);
+			// this.m_unLevel = view_as<Address>(50);
+			// this.m_nQuality = view_as<Address>(51);
+			// this.m_unFlags = view_as<Address>(52);
+			// this.m_unOrigin = view_as<Address>(53);
+			// this.m_unStyle = view_as<Address>(54);
+			this.m_dirtyBits = view_as<Address>(55);
+			// this.m_EquipInstanceSingleton_m_unDefinitionIndex = view_as<Address>(56);
+			this.m_CustomAttribSingleton_m_unDefinitionIndex = view_as<Address>(64); // attribute_t + 0
+			this.m_CustomAttribSingleton_m_flValue = view_as<Address>(72);			 // attribute_t + PointerSize(alignment)
+			this.m_pCustomData = view_as<Address>(80);
+		}
+		else
+		{
+			// this.m_unAccountID = view_as<Address>(24);
+			// this.m_unInventory = view_as<Address>(28);
+			// this.m_unDefIndex = view_as<Address>(32);
+			// this.m_unLevel = view_as<Address>(34);
+			// this.m_nQuality = view_as<Address>(35);
+			// this.m_unFlags = view_as<Address>(36);
+			// this.m_unOrigin = view_as<Address>(37);
+			// this.m_unStyle = view_as<Address>(38);
+			this.m_dirtyBits = view_as<Address>(39);
+			// this.m_EquipInstanceSingleton_m_unDefinitionIndex = view_as<Address>(40);
+			this.m_CustomAttribSingleton_m_unDefinitionIndex = view_as<Address>(44); // attribute_t + 0
+			this.m_CustomAttribSingleton_m_flValue = view_as<Address>(48);			 // PointerSize(alignment)
+			this.m_pCustomData = view_as<Address>(52);
+		}
 	}
 }
 CEconItem g_CEconItem;
@@ -175,92 +240,183 @@ enum struct CEconItemDefinition
 	void Init()
 	{
 		// vfptr = 0;
-		// this.m_pKVItem = view_as<Address>(4);
-		// this.m_nDefIndex = view_as<Address>(8);
-		// this.m_nRemappedDefIndex = view_as<Address>(10);
-		// this.m_pszRemappedDefItemName = view_as<Address>(12);
-		// this.m_bEnabled = view_as<Address>(16);
-		// this.m_unMinItemLevel = view_as<Address>(17);
-		// this.m_unMaxItemLevel = view_as<Address>(18);
-		// this.m_nItemQuality = view_as<Address>(19);
-		// this.m_nForcedItemQuality = view_as<Address>(20);
-		// this.m_nItemRarity = view_as<Address>(21);
-		// this.m_nDefaultDropQuantity = view_as<Address>(22);
-		// this.m_unItemSeries = view_as<Address>(24);
-		this.m_vecStaticAttributes = view_as<Address>(28); // CUtlVector<static_attrib_t>, + 0: m_memory.m_pMemory
-		this.m_vecStaticAttributes_m_Size = view_as<Address>(40); // m_vecStaticAttributes + 12(sizeof(CUtlMemory), PointerSize + 4 + 4)
-		// this.m_nPopularitySeed = view_as<Address>(48);
-		// this.m_pszItemBaseName = view_as<Address>(52);
-		// this.m_bProperName = view_as<Address>(56);
-		// this.m_pszItemTypeName = view_as<Address>(60);
-		// this.m_pszItemDesc = view_as<Address>(64);
-		// this.m_rtExpiration = view_as<Address>(68);
-		// this.m_pszInventoryModel = view_as<Address>(72);
-		// this.m_pszInventoryImage = view_as<Address>(76);
-		// this.m_pszInventoryOverlayImages = view_as<Address>(80);
-		// this.m_iInventoryImagePosition = view_as<Address>(100);
-		// this.m_iInventoryImageSize = view_as<Address>(108);
-		// this.m_iInspectPanelDistance = view_as<Address>(116);
-		// this.m_pszBaseDisplayModel = view_as<Address>(120);
-		// this.m_iDefaultSkin = view_as<Address>(124);
-		// this.m_bLoadOnDemand = view_as<Address>(128);
-		// this.m_bHasBeenLoaded = view_as<Address>(129);
-		// this.m_bHideBodyGroupsDeployedOnly = view_as<Address>(130);
-		// this.m_pszWorldDisplayModel = view_as<Address>(132);
-		// this.m_pszWorldExtraWearableModel = view_as<Address>(136);
-		// this.m_pszWorldExtraWearableViewModel = view_as<Address>(140);
-		// this.m_pszVisionFilteredDisplayModel = view_as<Address>(144);
-		// this.m_pszCollectionReference = view_as<Address>(148);
-		// this.m_bAttachToHands = view_as<Address>(152);
-		// this.m_bAttachToHandsVMOnly = view_as<Address>(153);
-		// this.m_bFlipViewModel = view_as<Address>(154);
-		// this.m_bActAsWearable = view_as<Address>(155);
-		// this.m_bActAsWeapon = view_as<Address>(156);
-		// this.m_bIsTool = view_as<Address>(157);
-		// this.m_pItemSetDef = view_as<Address>(160);
-		// this.m_pItemCollectionDef = view_as<Address>(164);
-		// this.m_PerTeamVisuals = view_as<Address>(168);
-		// this.m_pszBrassModelOverride = view_as<Address>(188);
-		// this.m_pTool = view_as<Address>(192);
-		// this.m_BundleInfo = view_as<Address>(196);
-		// this.m_iCapabilities = view_as<Address>(200);
-		// this.m_pDictIcons = view_as<Address>(204);
-		// this.m_pszItemClassname = view_as<Address>(208);
-		// this.m_pszItemLogClassname = view_as<Address>(212);
-		// this.m_pszItemIconClassname = view_as<Address>(216);
-		// this.m_pszDefinitionName = view_as<Address>(220);
-		// this.m_pszDatabaseAuditTable = view_as<Address>(224);
-		// this.m_bHidden = view_as<Address>(228);
-		// this.m_bShouldShowInArmory = view_as<Address>(229);
-		// this.m_bBaseItem = view_as<Address>(230);
-		// this.m_bImported = view_as<Address>(231);
-		// this.m_bIsPackBundle = view_as<Address>(232);
-		// this.m_pOwningPackBundle = view_as<Address>(236);
-		// this.m_bIsPackItem = view_as<Address>(240);
-		// this.m_pszArmoryDesc = view_as<Address>(244);
-		// this.m_pszXifierRemapClass = view_as<Address>(248);
-		// this.m_pszBaseFunctionalItemName = view_as<Address>(252);
-		// this.m_pszParticleSuffix = view_as<Address>(256);
-		// this.m_iArmoryRemap = view_as<Address>(260);
-		// this.m_iStoreRemap = view_as<Address>(264);
-		// this.m_pszArmoryRemap = view_as<Address>(268);
-		// this.m_pszStoreRemap = view_as<Address>(272);
-		// this.m_pszClassToken = view_as<Address>(276);
-		// this.m_pszSlotToken = view_as<Address>(280);
-		// this.m_iDropType = view_as<Address>(284);
-		// this.m_pszHolidayRestriction = view_as<Address>(288);
-		// this.m_nVisionFilterFlags = view_as<Address>(292);
-		// this.m_iSubType = view_as<Address>(296);
-		// this.m_bAllowedInThisMatch = view_as<Address>(300);
-		// this.m_unEquipRegionMask = view_as<Address>(304);
-		// this.m_unEquipRegionConflictMask = view_as<Address>(308);
-		// this.m_unSetItemRemapDefIndex = view_as<Address>(312);
-		// this.m_jobs = view_as<Address>(316);
-		// this.m_bValidForShuffle = view_as<Address>(336);
-		// this.m_bValidForSelfMade = view_as<Address>(337);
-		// this.m_vecTags = view_as<Address>(340);
-		// this.m_vecContainingBundleItemDefs = view_as<Address>(360);
-		// this.m_vecSteamWorkshopContributors = view_as<Address>(380);
+		// this.m_pKVItem = PointerSize;
+		// this.m_nDefIndex = PointerSize * view_as<Address>(2); // 8/16
+
+		if (PointerSize == view_as<Address>(8))
+		{
+			// this.m_nRemappedDefIndex = view_as<Address>(18);
+			// this.m_pszRemappedDefItemName = view_as<Address>(24);
+			// this.m_bEnabled = view_as<Address>(32);
+			// this.m_unMinItemLevel = view_as<Address>(33);
+			// this.m_unMaxItemLevel = view_as<Address>(34);
+			// this.m_nItemQuality = view_as<Address>(35);
+			// this.m_nForcedItemQuality = view_as<Address>(36);
+			// this.m_nItemRarity = view_as<Address>(37);
+			// this.m_nDefaultDropQuantity = view_as<Address>(38);
+			// this.m_unItemSeries = view_as<Address>(40);
+			this.m_vecStaticAttributes = view_as<Address>(48); // CUtlVector<static_attrib_t>, + 0: m_memory.m_pMemory
+			this.m_vecStaticAttributes_m_Size = view_as<Address>(56); // m_vecStaticAttributes + 16(sizeof(CUtlMemory), PointerSize + 4 + 4)
+			// this.m_nPopularitySeed = view_as<Address>(80);
+			// this.m_pszItemBaseName = view_as<Address>(88);
+			// this.m_bProperName = view_as<Address>(96);
+			// this.m_pszItemTypeName = view_as<Address>(104);
+			// this.m_pszItemDesc = view_as<Address>(112);
+			// this.m_rtExpiration = view_as<Address>(120);
+			// this.m_pszInventoryModel = view_as<Address>(128);
+			// this.m_pszInventoryImage = view_as<Address>(136);
+			// this.m_pszInventoryOverlayImages = view_as<Address>(144);
+			// this.m_iInventoryImagePosition = view_as<Address>(176);
+			// this.m_iInventoryImageSize = view_as<Address>(184);
+			// this.m_iInspectPanelDistance = view_as<Address>(192);
+			// this.m_pszBaseDisplayModel = view_as<Address>(200);
+			// this.m_iDefaultSkin = view_as<Address>(208);
+			// this.m_bLoadOnDemand = view_as<Address>(212);
+			// this.m_bHasBeenLoaded = view_as<Address>(213);
+			// this.m_bHideBodyGroupsDeployedOnly = view_as<Address>(214);
+			// this.m_pszWorldDisplayModel = view_as<Address>(216);
+			// this.m_pszWorldExtraWearableModel = view_as<Address>(224);
+			// this.m_pszWorldExtraWearableViewModel = view_as<Address>(232);
+			// this.m_pszVisionFilteredDisplayModel = view_as<Address>(240);
+			// this.m_pszCollectionReference = view_as<Address>(248);
+			// this.m_bAttachToHands = view_as<Address>(256);
+			// this.m_bAttachToHandsVMOnly = view_as<Address>(257);
+			// this.m_bFlipViewModel = view_as<Address>(258);
+			// this.m_bActAsWearable = view_as<Address>(259);
+			// this.m_bActAsWeapon = view_as<Address>(260);
+			// this.m_bIsTool = view_as<Address>(261);
+			// this.m_pItemSetDef = view_as<Address>(264);
+			// this.m_pItemCollectionDef = view_as<Address>(272);
+			// this.m_PerTeamVisuals = view_as<Address>(280);
+			// this.m_pszBrassModelOverride = view_as<Address>(320);
+			// this.m_pTool = view_as<Address>(328);
+			// this.m_BundleInfo = view_as<Address>(336);
+			// this.m_iCapabilities = view_as<Address>(344);
+			// this.m_pDictIcons = view_as<Address>(352);
+			// this.m_pszItemClassname = view_as<Address>(360);
+			// this.m_pszItemLogClassname = view_as<Address>(368);
+			// this.m_pszItemIconClassname = view_as<Address>(376);
+			// this.m_pszDefinitionName = view_as<Address>(384);
+			// this.m_pszDatabaseAuditTable = view_as<Address>(392);
+			// this.m_bHidden = view_as<Address>(400);
+			// this.m_bShouldShowInArmory = view_as<Address>(401);
+			// this.m_bBaseItem = view_as<Address>(402);
+			// this.m_bImported = view_as<Address>(403);
+			// this.m_bIsPackBundle = view_as<Address>(404);
+			// this.m_pOwningPackBundle = view_as<Address>(408);
+			// this.m_bIsPackItem = view_as<Address>(416);
+			// this.m_pszArmoryDesc = view_as<Address>(424);
+			// this.m_pszXifierRemapClass = view_as<Address>(432);
+			// this.m_pszBaseFunctionalItemName = view_as<Address>(440);
+			// this.m_pszParticleSuffix = view_as<Address>(448);
+			// this.m_iArmoryRemap = view_as<Address>(456);
+			// this.m_iStoreRemap = view_as<Address>(460);
+			// this.m_pszArmoryRemap = view_as<Address>(464);
+			// this.m_pszStoreRemap = view_as<Address>(472);
+			// this.m_pszClassToken = view_as<Address>(480);
+			// this.m_pszSlotToken = view_as<Address>(488);
+			// this.m_iDropType = view_as<Address>(496);
+			// this.m_pszHolidayRestriction = view_as<Address>(504);
+			// this.m_nVisionFilterFlags = view_as<Address>(512);
+			// this.m_iSubType = view_as<Address>(516);
+			// this.m_bAllowedInThisMatch = view_as<Address>(520);
+			// this.m_unEquipRegionMask = view_as<Address>(524);
+			// this.m_unEquipRegionConflictMask = view_as<Address>(528);
+			// this.m_unSetItemRemapDefIndex = view_as<Address>(532);
+			// this.m_jobs = view_as<Address>(536);
+			// this.m_bValidForShuffle = view_as<Address>(568);
+			// this.m_bValidForSelfMade = view_as<Address>(569);
+			// this.m_vecTags = view_as<Address>(576);
+			// this.m_vecContainingBundleItemDefs = view_as<Address>(608);
+			// this.m_vecSteamWorkshopContributors = view_as<Address>(640);
+		}
+		else
+		{
+			// this.m_nRemappedDefIndex = view_as<Address>(10);
+			// this.m_pszRemappedDefItemName = view_as<Address>(12);
+			// this.m_bEnabled = view_as<Address>(16);
+			// this.m_unMinItemLevel = view_as<Address>(17);
+			// this.m_unMaxItemLevel = view_as<Address>(18);
+			// this.m_nItemQuality = view_as<Address>(19);
+			// this.m_nForcedItemQuality = view_as<Address>(20);
+			// this.m_nItemRarity = view_as<Address>(21);
+			// this.m_nDefaultDropQuantity = view_as<Address>(22);
+			// this.m_unItemSeries = view_as<Address>(24);
+			this.m_vecStaticAttributes = view_as<Address>(28); // CUtlVector<static_attrib_t>, + 0: m_memory.m_pMemory
+			this.m_vecStaticAttributes_m_Size = view_as<Address>(40); // m_vecStaticAttributes + 12(sizeof(CUtlMemory), PointerSize + 4 + 4)
+			// this.m_nPopularitySeed = view_as<Address>(48);
+			// this.m_pszItemBaseName = view_as<Address>(52);
+			// this.m_bProperName = view_as<Address>(56);
+			// this.m_pszItemTypeName = view_as<Address>(60);
+			// this.m_pszItemDesc = view_as<Address>(64);
+			// this.m_rtExpiration = view_as<Address>(68);
+			// this.m_pszInventoryModel = view_as<Address>(72);
+			// this.m_pszInventoryImage = view_as<Address>(76);
+			// this.m_pszInventoryOverlayImages = view_as<Address>(80);
+			// this.m_iInventoryImagePosition = view_as<Address>(100);
+			// this.m_iInventoryImageSize = view_as<Address>(108);
+			// this.m_iInspectPanelDistance = view_as<Address>(116);
+			// this.m_pszBaseDisplayModel = view_as<Address>(120);
+			// this.m_iDefaultSkin = view_as<Address>(124);
+			// this.m_bLoadOnDemand = view_as<Address>(128);
+			// this.m_bHasBeenLoaded = view_as<Address>(129);
+			// this.m_bHideBodyGroupsDeployedOnly = view_as<Address>(130);
+			// this.m_pszWorldDisplayModel = view_as<Address>(132);
+			// this.m_pszWorldExtraWearableModel = view_as<Address>(136);
+			// this.m_pszWorldExtraWearableViewModel = view_as<Address>(140);
+			// this.m_pszVisionFilteredDisplayModel = view_as<Address>(144);
+			// this.m_pszCollectionReference = view_as<Address>(148);
+			// this.m_bAttachToHands = view_as<Address>(152);
+			// this.m_bAttachToHandsVMOnly = view_as<Address>(153);
+			// this.m_bFlipViewModel = view_as<Address>(154);
+			// this.m_bActAsWearable = view_as<Address>(155);
+			// this.m_bActAsWeapon = view_as<Address>(156);
+			// this.m_bIsTool = view_as<Address>(157);
+			// this.m_pItemSetDef = view_as<Address>(160);
+			// this.m_pItemCollectionDef = view_as<Address>(164);
+			// this.m_PerTeamVisuals = view_as<Address>(168);
+			// this.m_pszBrassModelOverride = view_as<Address>(188);
+			// this.m_pTool = view_as<Address>(192);
+			// this.m_BundleInfo = view_as<Address>(196);
+			// this.m_iCapabilities = view_as<Address>(200);
+			// this.m_pDictIcons = view_as<Address>(204);
+			// this.m_pszItemClassname = view_as<Address>(208);
+			// this.m_pszItemLogClassname = view_as<Address>(212);
+			// this.m_pszItemIconClassname = view_as<Address>(216);
+			// this.m_pszDefinitionName = view_as<Address>(220);
+			// this.m_pszDatabaseAuditTable = view_as<Address>(224);
+			// this.m_bHidden = view_as<Address>(228);
+			// this.m_bShouldShowInArmory = view_as<Address>(229);
+			// this.m_bBaseItem = view_as<Address>(230);
+			// this.m_bImported = view_as<Address>(231);
+			// this.m_bIsPackBundle = view_as<Address>(232);
+			// this.m_pOwningPackBundle = view_as<Address>(236);
+			// this.m_bIsPackItem = view_as<Address>(240);
+			// this.m_pszArmoryDesc = view_as<Address>(244);
+			// this.m_pszXifierRemapClass = view_as<Address>(248);
+			// this.m_pszBaseFunctionalItemName = view_as<Address>(252);
+			// this.m_pszParticleSuffix = view_as<Address>(256);
+			// this.m_iArmoryRemap = view_as<Address>(260);
+			// this.m_iStoreRemap = view_as<Address>(264);
+			// this.m_pszArmoryRemap = view_as<Address>(268);
+			// this.m_pszStoreRemap = view_as<Address>(272);
+			// this.m_pszClassToken = view_as<Address>(276);
+			// this.m_pszSlotToken = view_as<Address>(280);
+			// this.m_iDropType = view_as<Address>(284);
+			// this.m_pszHolidayRestriction = view_as<Address>(288);
+			// this.m_nVisionFilterFlags = view_as<Address>(292);
+			// this.m_iSubType = view_as<Address>(296);
+			// this.m_bAllowedInThisMatch = view_as<Address>(300);
+			// this.m_unEquipRegionMask = view_as<Address>(304);
+			// this.m_unEquipRegionConflictMask = view_as<Address>(308);
+			// this.m_unSetItemRemapDefIndex = view_as<Address>(312);
+			// this.m_jobs = view_as<Address>(316);
+			// this.m_bValidForShuffle = view_as<Address>(336);
+			// this.m_bValidForSelfMade = view_as<Address>(337);
+			// this.m_vecTags = view_as<Address>(340);
+			// this.m_vecContainingBundleItemDefs = view_as<Address>(360);
+			// this.m_vecSteamWorkshopContributors = view_as<Address>(380);
+		}
 	}
 }
 CEconItemDefinition g_CEconItemDefinition;
@@ -274,8 +430,8 @@ enum struct static_attrib_t
 	void Init()
 	{
 		this.iDefIndex = view_as<Address>(0);
-		this.m_value = view_as<Address>(4);
-		this.iSizeOf = 8;
+		this.m_value = PointerSize; // alignment
+		this.iSizeOf = PointerSize * view_as<Address>(2);
 	}
 }
 static_attrib_t g_static_attrib_t;
