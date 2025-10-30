@@ -55,6 +55,233 @@ StringMap g_AttributeDefinitionMapping;
 // caches string_t instances from AllocPooledString
 StringMap g_AllocPooledStringCache;
 
+/** Address Offsets **/
+enum struct CUtlVector
+{
+	Address m_size; // int
+
+	void Init()
+	{
+		// this.m_memory = view_as<Address>(0); // CUtlMemory<T> {T* m_pMemory, int m_nAllocationCount, int m_nGrowSize}
+		this.m_size = view_as<Address>(12);		 // int
+		// this.m_pElements = view_as<Address>(16); // T*
+	}
+}
+CUtlVector g_CUtlVector;
+
+enum struct CAttributeList
+{
+	Address m_Attributes; // /CUtlVector<CEconItemAttribute>
+	Address m_Attributes_m_Size; // int
+	Address m_pManager; // CAttributeManager*
+
+	void Init()
+	{
+		// vfptr = 0;
+		this.m_Attributes = view_as<Address>(4); //CUtlVector<CEconItemAttribute>
+		this.m_Attributes_m_Size = view_as<Address>(16); // m_Attributes + 12(sizeof(CUtlMemory), PointerSize + 4 + 4)
+		this.m_pManager = view_as<Address>(24);
+	}
+}
+CAttributeList g_CAttributeList;
+
+enum struct CEconItemAttribute
+{
+	Address m_iAttributeDefinitionIndex; // attrib_definition_index_t (u16)
+	Address m_flValue; // float
+	Address m_nRefundableCurrency; // int
+	int iSizeOf;
+
+	void Init()
+	{
+		//vfptr = 0;
+		this.m_iAttributeDefinitionIndex = view_as<Address>(4);
+		this.m_flValue = view_as<Address>(8);
+		this.m_nRefundableCurrency = view_as<Address>(12);
+		this.iSizeOf = 16;
+	}
+}
+CEconItemAttribute g_CEconItemAttribute;
+
+enum struct CEconItemAttributeDefinition
+{
+	Address m_nDefIndex;
+	Address m_pAttrType;
+	Address m_bStoredAsInteger;
+
+	void Init()
+	{
+		// this.m_pKVAttribute = view_as<Address>(0);
+		this.m_nDefIndex = view_as<Address>(4);
+		this.m_pAttrType = view_as<Address>(8);
+		// this.m_bHidden = view_as<Address>(12);
+		// this.m_bWebSchemaOutputForced = view_as<Address>(13);
+		this.m_bStoredAsInteger = view_as<Address>(14);
+		// this.m_bInstanceData = view_as<Address>(15);
+		// this.m_eAssetClassAttrExportRule = view_as<Address>(16);
+		// this.m_unAssetClassBucket = view_as<Address>(20);
+		// this.m_bIsSetBonus = view_as<Address>(24);
+		// this.m_iUserGenerationType = view_as<Address>(28);
+		// this.m_iEffectType = view_as<Address>(32);
+		// this.m_iDescriptionFormat = view_as<Address>(36);
+		// this.m_pszDescriptionString = view_as<Address>(40);
+		// this.m_pszArmoryDesc = view_as<Address>(44);
+		// this.m_pszDefinitionName = view_as<Address>(48);
+		// this.m_pszAttributeClass = view_as<Address>(52);
+		// this.m_bCanAffectMarketName = view_as<Address>(56);
+		// this.m_bCanAffectRecipeComponentName = view_as<Address>(57);
+		// this.m_ItemDefinitionTag = view_as<Address>(60);
+		// this.m_iszAttributeClass = view_as<Address>(64);
+	}
+}
+CEconItemAttributeDefinition g_CEconItemAttributeDefinition;
+
+enum struct CEconItem
+{
+	Address m_dirtyBits; // dirty_bits_t {u8 m_bInUse : 1, u8 m_bHasEquipSingleton : 1, u8 m_bHasAttribSingleton: 1}
+	Address m_CustomAttribSingleton_m_unDefinitionIndex; // attribute_t + 0
+	Address m_CustomAttribSingleton_m_flValue; // attribute_t + 4
+	Address m_pCustomData; // CEconItemCustomData* {CUtlVector< CEconItem::attribute_t > m_vecAttributes, CEconItem* m_pInteriorItem, uint64 m_ulOriginalID, uint16 m_unQuantity}
+
+	void Init()
+	{
+		// GCSDK::CSharedObject {vfptr} = 0
+		// IEconItemInterface {vfptr} = pointersize
+		// this.m_pszSmallIcon = PointerSize * view_as<Address>(2); // 8/16
+		// this.m_pszLargeIcon = PointerSize * view_as<Address>(3); // 12/24
+		// this.m_ulID = PointerSize * view_as<Address>(4); // 16/32
+		// this.m_unAccountID = view_as<Address>(24);
+		// this.m_unInventory = view_as<Address>(28);
+		// this.m_unDefIndex = view_as<Address>(32);
+		// this.m_unLevel = view_as<Address>(34);
+		// this.m_nQuality = view_as<Address>(35);
+		// this.m_unFlags = view_as<Address>(36);
+		// this.m_unOrigin = view_as<Address>(37);
+		// this.m_unStyle = view_as<Address>(38);
+		this.m_dirtyBits = view_as<Address>(39);
+		// this.m_EquipInstanceSingleton_m_unDefinitionIndex = view_as<Address>(40);
+		this.m_CustomAttribSingleton_m_unDefinitionIndex = view_as<Address>(44); // attribute_t + 0
+		this.m_CustomAttribSingleton_m_flValue = view_as<Address>(48);			 // attribute_t + 4
+		this.m_pCustomData = view_as<Address>(52);
+	}
+}
+CEconItem g_CEconItem;
+
+enum struct CEconItemDefinition
+{
+	Address m_vecStaticAttributes; // CUtlVector<static_attrib_t>
+	Address m_vecStaticAttributes_m_Size; // int
+
+	void Init()
+	{
+		// vfptr = 0;
+		// this.m_pKVItem = view_as<Address>(4);
+		// this.m_nDefIndex = view_as<Address>(8);
+		// this.m_nRemappedDefIndex = view_as<Address>(10);
+		// this.m_pszRemappedDefItemName = view_as<Address>(12);
+		// this.m_bEnabled = view_as<Address>(16);
+		// this.m_unMinItemLevel = view_as<Address>(17);
+		// this.m_unMaxItemLevel = view_as<Address>(18);
+		// this.m_nItemQuality = view_as<Address>(19);
+		// this.m_nForcedItemQuality = view_as<Address>(20);
+		// this.m_nItemRarity = view_as<Address>(21);
+		// this.m_nDefaultDropQuantity = view_as<Address>(22);
+		// this.m_unItemSeries = view_as<Address>(24);
+		this.m_vecStaticAttributes = view_as<Address>(28); // CUtlVector<static_attrib_t>, + 0: m_memory.m_pMemory
+		this.m_vecStaticAttributes_m_Size = view_as<Address>(40); // m_vecStaticAttributes + 12(sizeof(CUtlMemory), PointerSize + 4 + 4)
+		// this.m_nPopularitySeed = view_as<Address>(48);
+		// this.m_pszItemBaseName = view_as<Address>(52);
+		// this.m_bProperName = view_as<Address>(56);
+		// this.m_pszItemTypeName = view_as<Address>(60);
+		// this.m_pszItemDesc = view_as<Address>(64);
+		// this.m_rtExpiration = view_as<Address>(68);
+		// this.m_pszInventoryModel = view_as<Address>(72);
+		// this.m_pszInventoryImage = view_as<Address>(76);
+		// this.m_pszInventoryOverlayImages = view_as<Address>(80);
+		// this.m_iInventoryImagePosition = view_as<Address>(100);
+		// this.m_iInventoryImageSize = view_as<Address>(108);
+		// this.m_iInspectPanelDistance = view_as<Address>(116);
+		// this.m_pszBaseDisplayModel = view_as<Address>(120);
+		// this.m_iDefaultSkin = view_as<Address>(124);
+		// this.m_bLoadOnDemand = view_as<Address>(128);
+		// this.m_bHasBeenLoaded = view_as<Address>(129);
+		// this.m_bHideBodyGroupsDeployedOnly = view_as<Address>(130);
+		// this.m_pszWorldDisplayModel = view_as<Address>(132);
+		// this.m_pszWorldExtraWearableModel = view_as<Address>(136);
+		// this.m_pszWorldExtraWearableViewModel = view_as<Address>(140);
+		// this.m_pszVisionFilteredDisplayModel = view_as<Address>(144);
+		// this.m_pszCollectionReference = view_as<Address>(148);
+		// this.m_bAttachToHands = view_as<Address>(152);
+		// this.m_bAttachToHandsVMOnly = view_as<Address>(153);
+		// this.m_bFlipViewModel = view_as<Address>(154);
+		// this.m_bActAsWearable = view_as<Address>(155);
+		// this.m_bActAsWeapon = view_as<Address>(156);
+		// this.m_bIsTool = view_as<Address>(157);
+		// this.m_pItemSetDef = view_as<Address>(160);
+		// this.m_pItemCollectionDef = view_as<Address>(164);
+		// this.m_PerTeamVisuals = view_as<Address>(168);
+		// this.m_pszBrassModelOverride = view_as<Address>(188);
+		// this.m_pTool = view_as<Address>(192);
+		// this.m_BundleInfo = view_as<Address>(196);
+		// this.m_iCapabilities = view_as<Address>(200);
+		// this.m_pDictIcons = view_as<Address>(204);
+		// this.m_pszItemClassname = view_as<Address>(208);
+		// this.m_pszItemLogClassname = view_as<Address>(212);
+		// this.m_pszItemIconClassname = view_as<Address>(216);
+		// this.m_pszDefinitionName = view_as<Address>(220);
+		// this.m_pszDatabaseAuditTable = view_as<Address>(224);
+		// this.m_bHidden = view_as<Address>(228);
+		// this.m_bShouldShowInArmory = view_as<Address>(229);
+		// this.m_bBaseItem = view_as<Address>(230);
+		// this.m_bImported = view_as<Address>(231);
+		// this.m_bIsPackBundle = view_as<Address>(232);
+		// this.m_pOwningPackBundle = view_as<Address>(236);
+		// this.m_bIsPackItem = view_as<Address>(240);
+		// this.m_pszArmoryDesc = view_as<Address>(244);
+		// this.m_pszXifierRemapClass = view_as<Address>(248);
+		// this.m_pszBaseFunctionalItemName = view_as<Address>(252);
+		// this.m_pszParticleSuffix = view_as<Address>(256);
+		// this.m_iArmoryRemap = view_as<Address>(260);
+		// this.m_iStoreRemap = view_as<Address>(264);
+		// this.m_pszArmoryRemap = view_as<Address>(268);
+		// this.m_pszStoreRemap = view_as<Address>(272);
+		// this.m_pszClassToken = view_as<Address>(276);
+		// this.m_pszSlotToken = view_as<Address>(280);
+		// this.m_iDropType = view_as<Address>(284);
+		// this.m_pszHolidayRestriction = view_as<Address>(288);
+		// this.m_nVisionFilterFlags = view_as<Address>(292);
+		// this.m_iSubType = view_as<Address>(296);
+		// this.m_bAllowedInThisMatch = view_as<Address>(300);
+		// this.m_unEquipRegionMask = view_as<Address>(304);
+		// this.m_unEquipRegionConflictMask = view_as<Address>(308);
+		// this.m_unSetItemRemapDefIndex = view_as<Address>(312);
+		// this.m_jobs = view_as<Address>(316);
+		// this.m_bValidForShuffle = view_as<Address>(336);
+		// this.m_bValidForSelfMade = view_as<Address>(337);
+		// this.m_vecTags = view_as<Address>(340);
+		// this.m_vecContainingBundleItemDefs = view_as<Address>(360);
+		// this.m_vecSteamWorkshopContributors = view_as<Address>(380);
+	}
+}
+CEconItemDefinition g_CEconItemDefinition;
+
+enum struct static_attrib_t
+{
+	Address iDefIndex; // attrib_definition_index_t (u16)
+	Address m_value; // union attribute_data_union_t {float asFloat; uint32 asUint32; byte *asBlobPointer;}
+	int iSizeOf;
+
+	void Init()
+	{
+		this.iDefIndex = view_as<Address>(0);
+		this.m_value = view_as<Address>(4);
+		this.iSizeOf = 8;
+	}
+}
+static_attrib_t g_static_attrib_t;
+/** End Address Offsets **/
+
+
 /**
  * since the game doesn't free heap-allocated non-GC attributes, we're taking on that
  * responsibility
@@ -370,6 +597,14 @@ public void OnPluginStart() {
 	g_AttributeDefinitionMapping = new StringMap();
 
 	g_AllocPooledStringCache = new StringMap();
+
+	g_CUtlVector.Init();
+	g_CAttributeList.Init();
+	g_CEconItemAttribute.Init();
+	g_CEconItemAttributeDefinition.Init();
+	g_CEconItem.Init();
+	g_CEconItemDefinition.Init();
+	g_static_attrib_t.Init();
 }
 
 public void OnPluginEnd() {
@@ -405,7 +640,7 @@ public int Native_IsIntegerValue(Handle plugin, int numParams) {
 		return ThrowNativeError(1, "Attribute index %d is invalid", iDefIndex);
 	}
 
-	return LoadFromAddressOffset(pEconItemAttributeDefinition, 0x0E, NumberType_Int8);
+	return LoadFromAddress(pEconItemAttributeDefinition + g_CEconItemAttributeDefinition.m_bStoredAsInteger, NumberType_Int8);
 }
 
 static int GetStaticAttribs(Address pItemDef, int[] iAttribIndices, int[] iAttribValues, int size = 16) {
@@ -414,18 +649,18 @@ static int GetStaticAttribs(Address pItemDef, int[] iAttribIndices, int[] iAttri
 	// 0x1C = CEconItemDefinition.m_Attributes (type CUtlVector<static_attrib_t>)
 	// 0x1C = (...) m_Attributes.m_Memory.m_pMemory (m_Attributes + 0x00)
 	// 0x28 = (...) m_Attributes.m_Size (m_Attributes + 0x0C)
-	int iNumAttribs = LoadFromAddressOffset(pItemDef, 0x28, NumberType_Int32);
+	int iNumAttribs = LoadFromAddress(pItemDef + g_CEconItemDefinition.m_vecStaticAttributes_m_Size, NumberType_Int32);
 	if (!iNumAttribs) {
 		return 0;
 	}
 
-	Address pAttribList = DereferencePointer(pItemDef, .offset = 0x1C);
+	Address pAttribList = DereferencePointer(pItemDef, .offset = g_CEconItemDefinition.m_vecStaticAttributes);
 
 	// Read static_attrib_t (size 0x08) entries from contiguous block of memory
 	for (int i = 0; i < iNumAttribs && i < size; i++) {
-		Address pStaticAttrib = pAttribList + view_as<Address>(i * 0x08);
-		iAttribIndices[i] = LoadFromAddress(pStaticAttrib, NumberType_Int16);
-		iAttribValues[i] = LoadFromAddressOffset(pStaticAttrib, 0x04, NumberType_Int32);
+		Address pStaticAttrib = pAttribList + view_as<Address>(i * g_static_attrib_t.iSizeOf);
+		iAttribIndices[i] = LoadFromAddress(pStaticAttrib, NumberType_Int16); // g_static_attrib_t.iDefIndex
+		iAttribValues[i] = LoadFromAddress(pStaticAttrib + g_static_attrib_t.m_value, NumberType_Int32);
 	}
 	return iNumAttribs;
 }
@@ -473,13 +708,13 @@ static int GetSOCAttribs(int iEntity, int[] iAttribIndices, int[] iAttribValues,
 	}
 
 	// 0x34 = CEconItem.m_pAttributes (type CUtlVector<static_attrib_t>*, possibly null)
-	Address pCustomData = DereferencePointer(pEconItem, .offset = 0x34);
+	Address pCustomData = DereferencePointer(pEconItem, .offset = g_CEconItem.m_pCustomData);
 	if (pCustomData) {
 		AssertValidAddress(pCustomData);
 
 		// 0x0C = (...) m_pAttributes->m_Size (m_pAttributes + 0x0C)
 		// 0x00 = (...) m_pAttributes->m_Memory.m_pMemory (m_pAttributes + 0x00)
-		int iCount = LoadFromAddressOffset(pCustomData, 0x0C, NumberType_Int32);
+		int iCount = LoadFromAddress(pCustomData + g_CUtlVector.m_size, NumberType_Int32);
 		if (!iCount) {
 			// abort early if the attribute list is empty -- we might deref garbage otherwise
 			return 0;
@@ -489,19 +724,19 @@ static int GetSOCAttribs(int iEntity, int[] iAttribIndices, int[] iAttribValues,
 
 		// Read static_attrib_t (size 0x08) entries from contiguous block of memory
 		for (int i = 0; i < iCount && i < size; ++i) {
-			Address pSOCAttribEntry = pCustomDataArray + view_as<Address>(i * 0x08);
+			Address pSOCAttribEntry = pCustomDataArray + view_as<Address>(i * g_static_attrib_t.iSizeOf);
 
-			iAttribIndices[i] = LoadFromAddress(pSOCAttribEntry, NumberType_Int16);
-			iAttribValues[i] = LoadFromAddressOffset(pSOCAttribEntry, 0x04, NumberType_Int32);
+			iAttribIndices[i] = LoadFromAddress(pSOCAttribEntry, NumberType_Int16); // g_static_attrib_t.iDefIndex
+			iAttribValues[i] = LoadFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value, NumberType_Int32);
 		}
 		return iCount;
 	}
 
 	//(CEconItem+0x27 & 0b100 & 0xFF) != 0
-	bool hasInternalAttribute = !!(LoadFromAddressOffset(pEconItem, 0x27, NumberType_Int8) & 0b100);
+	bool hasInternalAttribute = !!(LoadFromAddress(pEconItem + g_CEconItem.m_dirtyBits, NumberType_Int8) & 0b100);
 	if (hasInternalAttribute) {
-		iAttribIndices[0] = LoadFromAddressOffset(pEconItem, 0x2C, NumberType_Int16);
-		iAttribValues[0] = LoadFromAddressOffset(pEconItem, 0x30, NumberType_Int32);
+		iAttribIndices[0] = LoadFromAddress(pEconItem + g_CEconItem.m_CustomAttribSingleton_m_unDefinitionIndex, NumberType_Int16);
+		iAttribValues[0] = LoadFromAddress(pEconItem + g_CEconItem.m_CustomAttribSingleton_m_flValue, NumberType_Int32);
 		return 1;
 	}
 	return 0;
@@ -716,28 +951,28 @@ public int Native_RemoveAll(Handle plugin, int numParams) {
 public int Native_SetID(Handle plugin, int numParams) {
 	Address pAttrib = GetNativeCell(1);
 	int iDefIndex = GetNativeCell(2);
-	StoreToAddressOffset(pAttrib, 0x04, iDefIndex, NumberType_Int16);
+	StoreToAddress(pAttrib + g_CEconItemAttribute.m_iAttributeDefinitionIndex, iDefIndex, NumberType_Int16);
 	return iDefIndex;
 }
 
 /* native int TF2Attrib_GetDefIndex(Address pAttrib); */
 public int Native_GetID(Handle plugin, int numParams) {
 	Address pAttrib = GetNativeCell(1);
-	return LoadFromAddressOffset(pAttrib, 0x04, NumberType_Int16);
+	return LoadFromAddress(pAttrib + g_CEconItemAttribute.m_iAttributeDefinitionIndex, NumberType_Int16);
 }
 
 /* native void TF2Attrib_SetValue(Address pAttrib, float flValue); */
 public int Native_SetVal(Handle plugin, int numParams) {
 	Address pAttrib = GetNativeCell(1);
 	int flVal = GetNativeCell(2);	//It's a float but avoiding tag mismatch warnings from StoreToAddress
-	StoreToAddressOffset(pAttrib, 0x08, flVal, NumberType_Int32);
+	StoreToAddress(pAttrib + g_CEconItemAttribute.m_flValue, flVal, NumberType_Int32);
 	return flVal;
 }
 
 /* native float TF2Attrib_GetValue(Address pAttrib); */
 public int Native_GetVal(Handle plugin, int numParams) {
 	Address pAttrib = GetNativeCell(1);
-	return LoadFromAddressOffset(pAttrib, 0x08, NumberType_Int32);
+	return LoadFromAddress(pAttrib + g_CEconItemAttribute.m_flValue, NumberType_Int32);
 }
 
 /* TF2Attrib_UnsafeGetStringValue(any pRawValue, char[] buffer, int maxlen); */
@@ -756,14 +991,14 @@ public int Native_GetStringVal(Handle plugin, int numParams) {
 public int Native_SetCurrency(Handle plugin, int numParams) {
 	Address pAttrib = GetNativeCell(1);
 	int nCurrency = GetNativeCell(2);
-	StoreToAddressOffset(pAttrib, 0x0C, nCurrency, NumberType_Int32);
+	StoreToAddress(pAttrib + g_CEconItemAttribute.m_nRefundableCurrency, nCurrency, NumberType_Int32);
 	return nCurrency;
 }
 
 /* native int TF2Attrib_GetRefundableCurrency(Address pAttrib); */
 public int Native_GetCurrency(Handle plugin, int numParams) {
 	Address pAttrib = GetNativeCell(1);
-	return LoadFromAddressOffset(pAttrib, 0x0C, NumberType_Int32);
+	return LoadFromAddress(pAttrib + g_CEconItemAttribute.m_nRefundableCurrency, NumberType_Int32);
 }
 
 public int Native_DeprecatedPropertyAccess(Handle plugin, int numParams) {
@@ -815,22 +1050,22 @@ public int Native_ListIDs(Handle plugin, int numParams) {
 	}
 
 	// 0x10 = CAttributeList.m_Attributes.m_Size (m_Attributes + 0x0C)
-	int iNumAttribs = LoadFromAddressOffset(pAttributeList, 0x10, NumberType_Int32);
+	int iNumAttribs = LoadFromAddress(pAttributeList + g_CAttributeList.m_Attributes_m_Size, NumberType_Int32);
 	if (!iNumAttribs) {
 		return 0;
 	}
 
 	// 0x04 = CAttributeList.m_Attributes (type CUtlVector<CEconItemAttribute>)
 	// 0x04 = CAttributeList.m_Attributes.m_Memory.m_pMemory
-	Address pAttribListData = DereferencePointer(pAttributeList, .offset = 0x04);
+	Address pAttribListData = DereferencePointer(pAttributeList, .offset = g_CAttributeList.m_Attributes);
 	AssertValidAddress(pAttribListData);
 
 	int[] iAttribIndices = new int[size];
 
 	// Read CEconItemAttribute (size 0x10) entries from contiguous block of memory
 	for (int i = 0; i < iNumAttribs && i < size; i++) {
-		Address pAttributeEntry = pAttribListData + view_as<Address>(i * 0x10);
-		iAttribIndices[i] = LoadFromAddressOffset(pAttributeEntry, 0x04, NumberType_Int16);
+		Address pAttributeEntry = pAttribListData + view_as<Address>(i * g_CEconItemAttribute.iSizeOf);
+		iAttribIndices[i] = LoadFromAddress(pAttributeEntry + g_CEconItemAttribute.m_iAttributeDefinitionIndex, NumberType_Int16);
 	}
 	SetNativeArray(2, iAttribIndices, size);
 	return iNumAttribs;
@@ -1021,7 +1256,7 @@ static bool GetAttributeDefIndexByName(const char[] name, int &iDefIndex) {
 		return false;
 	}
 
-	iDefIndex = LoadFromAddressOffset(pAttribDef, 0x04, NumberType_Int16);
+	iDefIndex = LoadFromAddressOffset(pAttribDef, g_CEconItemAttributeDefinition.m_nDefIndex, NumberType_Int16);
 	return true;
 }
 
@@ -1031,7 +1266,7 @@ static Address GetEntityAttributeManager(int entity) {
 		return Address_Null;
 	}
 
-	Address pAttributeManager = DereferencePointer(pAttributeList, .offset = 0x18);
+	Address pAttributeManager = DereferencePointer(pAttributeList, .offset = g_CAttributeList.m_pManager);
 	AssertValidAddress(pAttributeManager);
 	return pAttributeManager;
 }
@@ -1047,7 +1282,7 @@ static bool InitializeAttributeValue(Address pAttributeList, int attrdef, const 
 		return false;
 	}
 
-	Address pDefType = DereferencePointer(pAttrDef + view_as<Address>(0x08));
+	Address pDefType = DereferencePointer(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
 
 	bool networked = IsNetworkedRuntimeAttribute(pDefType);
 
@@ -1136,20 +1371,20 @@ static bool IsNetworkedRuntimeAttribute(Address pDefType) {
 /**
  * Unloads the attribute in a given CEconItemAttribute instance.
  */
-#pragma unused UnloadAttributeValue
-static void UnloadAttributeValue(Address pAttrDef, Address pEconItemAttribute) {
-	Address pDefType = DereferencePointer(pAttrDef + view_as<Address>(0x08));
-	Address pAttributeValue = pEconItemAttribute + view_as<Address>(0x08);
+// #pragma unused UnloadAttributeValue
+// static void UnloadAttributeValue(Address pAttrDef, Address pEconItemAttribute) {
+// 	Address pDefType = DereferencePointer(pAttrDef + view_as<Address>(0x08));
+// 	Address pAttributeValue = pEconItemAttribute + view_as<Address>(0x08);
 
-	SDKCall(hSDKAttributeValueUnload, pDefType, pAttributeValue);
-}
+// 	SDKCall(hSDKAttributeValueUnload, pDefType, pAttributeValue);
+// }
 
 /**
  * Unloads the given raw attribute value.
  */
 static void UnloadAttributeRawValue(Address pAttrDef, Address pAttributeValue) {
 	Address pAttributeDataUnion = pAttributeValue;
-	Address pDefType = DereferencePointer(pAttrDef + view_as<Address>(0x08));
+	Address pDefType = DereferencePointer(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
 	SDKCall(hSDKAttributeValueUnloadByRef, pDefType, pAttributeDataUnion);
 }
 
@@ -1160,7 +1395,7 @@ static bool IsAttributeString(int attrdef) {
 	Address pAttrDef = GetAttributeDefinitionByID(attrdef);
 	Address pKnownStringAttribDef = GetAttributeDefinitionByName("cosmetic taunt sound");
 	return pAttrDef && pKnownStringAttribDef
-			&& DereferencePointer(pAttrDef, 0x08) == DereferencePointer(pKnownStringAttribDef, 0x08);
+		&& DereferencePointer(pAttrDef, g_CEconItemAttributeDefinition.m_pAttrType) == DereferencePointer(pKnownStringAttribDef, g_CEconItemAttributeDefinition.m_pAttrType);
 }
 
 /**
@@ -1210,19 +1445,19 @@ static void RemoveNonNetworkedRuntimeAttributesOnEntities() {
 		// the runtime attribute list can be any size, the current limit of 20 is on networked
 		ArrayList heapedAttribDefs = new ArrayList();
 
-		int iNumAttribs = LoadFromAddressOffset(pAttributeList, 0x10, NumberType_Int32);
+		int iNumAttribs = LoadFromAddress(pAttributeList + g_CAttributeList.m_Attributes_m_Size, NumberType_Int32);
 		if (!iNumAttribs) {
 			continue;
 		}
 
-		Address pAttribListData = DereferencePointer(pAttributeList, .offset = 0x04);
+		Address pAttribListData = DereferencePointer(pAttributeList, g_CAttributeList.m_Attributes);
 
 		// we know there are attributes; make sure our contiguous memory is valid
 		AssertValidAddress(pAttribListData);
 
 		for (int i = 0; i < iNumAttribs; i++) {
-			Address pAttributeEntry = pAttribListData + view_as<Address>(i * 0x10);
-			int attrdef = LoadFromAddressOffset(pAttributeEntry, 0x04, NumberType_Int16);
+			Address pAttributeEntry = pAttribListData + view_as<Address>(i * g_CEconItemAttribute.iSizeOf);
+			int attrdef = LoadFromAddress(pAttributeEntry + g_CEconItemAttribute.m_iAttributeDefinitionIndex, NumberType_Int16);
 
 			Address pAttrDef = GetAttributeDefinitionByID(attrdef);
 			if (!pAttrDef) {
@@ -1230,12 +1465,12 @@ static void RemoveNonNetworkedRuntimeAttributesOnEntities() {
 				continue;
 			}
 
-			Address pDefType = DereferencePointer(pAttrDef + view_as<Address>(0x08));
+			Address pDefType = DereferencePointer(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
 			if (IsNetworkedRuntimeAttribute(pDefType)) {
 				continue;
 			}
 
-			any rawValue = LoadFromAddressOffset(pAttributeEntry, 0x08, NumberType_Int32);
+			any rawValue = LoadFromAddressOffset(pAttributeEntry, g_CEconItemAttribute.m_flValue, NumberType_Int32);
 
 			// allow plugins to `TF2Attrib_Set*()` their own instances undisturbed by only
 			// processing attributes that we're aware of
