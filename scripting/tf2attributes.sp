@@ -810,7 +810,7 @@ static int GetStaticAttribs(Address pItemDef, int[] iAttribIndices, int[] iAttri
 		return 0;
 	}
 
-	Address pAttribList = DereferencePointer(pItemDef, .offset = g_CEconItemDefinition.m_vecStaticAttributes);
+	Address pAttribList = LoadAddressFromAddress(pItemDef + g_CEconItemDefinition.m_vecStaticAttributes);
 
 	// Read static_attrib_t (size 0x08) entries from contiguous block of memory
 	for (int i = 0; i < iNumAttribs && i < size; i++) {
@@ -864,7 +864,7 @@ static int GetSOCAttribs(int iEntity, int[] iAttribIndices, int[] iAttribValues,
 	}
 
 	// 0x34 = CEconItem.m_pAttributes (type CUtlVector<static_attrib_t>*, possibly null)
-	Address pCustomData = DereferencePointer(pEconItem, .offset = g_CEconItem.m_pCustomData);
+	Address pCustomData = LoadAddressFromAddress(pEconItem + g_CEconItem.m_pCustomData);
 	if (pCustomData) {
 		AssertValidAddress(pCustomData);
 
@@ -876,7 +876,7 @@ static int GetSOCAttribs(int iEntity, int[] iAttribIndices, int[] iAttribValues,
 			return 0;
 		}
 
-		Address pCustomDataArray = DereferencePointer(pCustomData);
+		Address pCustomDataArray = LoadAddressFromAddress(pCustomData);
 
 		// Read static_attrib_t (size 0x08) entries from contiguous block of memory
 		for (int i = 0; i < iCount && i < size; ++i) {
@@ -1213,7 +1213,7 @@ public int Native_ListIDs(Handle plugin, int numParams) {
 
 	// 0x04 = CAttributeList.m_Attributes (type CUtlVector<CEconItemAttribute>)
 	// 0x04 = CAttributeList.m_Attributes.m_Memory.m_pMemory
-	Address pAttribListData = DereferencePointer(pAttributeList, .offset = g_CAttributeList.m_Attributes);
+	Address pAttribListData = LoadAddressFromAddress(pAttributeList + g_CAttributeList.m_Attributes);
 	AssertValidAddress(pAttribListData);
 
 	int[] iAttribIndices = new int[size];
@@ -1346,7 +1346,7 @@ public int Native_HookValueString(Handle plugin, int numParams) {
 	}
 
 	// read from the output string_t
-	LoadStringFromAddress(DereferencePointer(pOutput), output, buflen);
+	LoadStringFromAddress(LoadAddressFromAddress(pOutput), output, buflen);
 
 	int written;
 	SetNativeString(4, output, buflen, .bytes = written);
@@ -1422,7 +1422,7 @@ static Address GetEntityAttributeManager(int entity) {
 		return Address_Null;
 	}
 
-	Address pAttributeManager = DereferencePointer(pAttributeList, .offset = g_CAttributeList.m_pManager);
+	Address pAttributeManager = LoadAddressFromAddress(pAttributeList + g_CAttributeList.m_pManager);
 	AssertValidAddress(pAttributeManager);
 	return pAttributeManager;
 }
@@ -1438,7 +1438,7 @@ static bool InitializeAttributeValue(Address pAttributeList, int attrdef, const 
 		return false;
 	}
 
-	Address pDefType = DereferencePointer(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
+	Address pDefType = LoadAddressFromAddress(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
 
 	bool networked = IsNetworkedRuntimeAttribute(pDefType);
 
@@ -1540,7 +1540,7 @@ static bool IsNetworkedRuntimeAttribute(Address pDefType) {
  */
 static void UnloadAttributeRawValue(Address pAttrDef, Address pAttributeValue) {
 	Address pAttributeDataUnion = pAttributeValue;
-	Address pDefType = DereferencePointer(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
+	Address pDefType = LoadAddressFromAddress(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
 	SDKCall(hSDKAttributeValueUnloadByRef, pDefType, pAttributeDataUnion);
 }
 
@@ -1551,7 +1551,7 @@ static bool IsAttributeString(int attrdef) {
 	Address pAttrDef = GetAttributeDefinitionByID(attrdef);
 	Address pKnownStringAttribDef = GetAttributeDefinitionByName("cosmetic taunt sound");
 	return pAttrDef && pKnownStringAttribDef
-		&& DereferencePointer(pAttrDef, g_CEconItemAttributeDefinition.m_pAttrType) == DereferencePointer(pKnownStringAttribDef, g_CEconItemAttributeDefinition.m_pAttrType);
+		&& LoadAddressFromAddress(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType) == LoadAddressFromAddress(pKnownStringAttribDef + g_CEconItemAttributeDefinition.m_pAttrType);
 }
 
 /**
@@ -1606,7 +1606,7 @@ static void RemoveNonNetworkedRuntimeAttributesOnEntities() {
 			continue;
 		}
 
-		Address pAttribListData = DereferencePointer(pAttributeList, g_CAttributeList.m_Attributes);
+		Address pAttribListData = LoadAddressFromAddress(pAttributeList + g_CAttributeList.m_Attributes);
 
 		// we know there are attributes; make sure our contiguous memory is valid
 		AssertValidAddress(pAttribListData);
@@ -1621,7 +1621,7 @@ static void RemoveNonNetworkedRuntimeAttributesOnEntities() {
 				continue;
 			}
 
-			Address pDefType = DereferencePointer(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
+			Address pDefType = LoadAddressFromAddress(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
 			if (IsNetworkedRuntimeAttribute(pDefType)) {
 				continue;
 			}
@@ -1718,10 +1718,6 @@ stock int LoadFromAddressOffset(Address addr, int offset, NumberType size) {
 
 stock void StoreToAddressOffset(Address addr, int offset, int data, NumberType size) {
 	StoreToAddress(addr + view_as<Address>(offset), data, size);
-}
-
-stock Address DereferencePointer(Address addr, int offset = 0) {
-	return view_as<Address>(LoadFromAddressOffset(addr, offset, NumberType_Int32));
 }
 
 stock int LoadStringFromAddress(Address addr, char[] buffer, int maxlen,
