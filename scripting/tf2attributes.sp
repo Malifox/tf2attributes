@@ -1743,25 +1743,27 @@ stock int LoadStringFromAddress(Address addr, char[] buffer, int maxlen,
  * Runtime assertion that we're receiving valid addresses.
  * If we're not, something has gone terribly wrong and we might need to update.
  */
-stock void AssertValidAddress(Address pAddress) {
-	static Address Address_MinimumValid = view_as<Address>(0x10000);
+void AssertValidAddress(Address pAddress) {
 	if (pAddress == Address_Null) {
 		ThrowError("Received invalid address (NULL)");
 	}
-	if (unsigned_compare(view_as<int>(pAddress), view_as<int>(Address_MinimumValid)) < 0) {
-		ThrowError("Received invalid address (%08x)", pAddress);
-	}
+
+	// static Address Address_MinimumValid = view_as<Address>(0x10000); // Addresses are now virtual addresses, so this check is not valid anymore
+
+	// if (unsigned_compare(view_as<int>(pAddress), view_as<int>(Address_MinimumValid)) < 0) {
+	// 	ThrowError("Received invalid address (%08x)", pAddress);
+	// }
 }
 
-stock int unsigned_compare(int a, int b) {
-	if (a == b) {
-		return 0;
-	}
-	if ((a >>> 31) == (b >>> 31)) {
-		return ((a & 0x7FFFFFFF) > (b & 0x7FFFFFFF)) ? 1 : -1;
-	}
-	return ((a >>> 31) > (b >>> 31)) ? 1 : -1;
-}
+// stock int unsigned_compare(int a, int b) {
+// 	if (a == b) {
+// 		return 0;
+// 	}
+// 	if ((a >>> 31) == (b >>> 31)) {
+// 		return ((a & 0x7FFFFFFF) > (b & 0x7FFFFFFF)) ? 1 : -1;
+// 	}
+// 	return ((a >>> 31) > (b >>> 31)) ? 1 : -1;
+// }
 /*
 struct CEconItemAttributeDefinition
 {
