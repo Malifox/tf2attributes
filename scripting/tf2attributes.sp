@@ -1412,7 +1412,7 @@ static bool GetAttributeDefIndexByName(const char[] name, int &iDefIndex) {
 		return false;
 	}
 
-	iDefIndex = LoadFromAddressOffset(pAttribDef, g_CEconItemAttributeDefinition.m_nDefIndex, NumberType_Int16);
+	iDefIndex = LoadFromAddress(pAttribDef + g_CEconItemAttributeDefinition.m_nDefIndex, NumberType_Int16);
 	return true;
 }
 
@@ -1626,7 +1626,7 @@ static void RemoveNonNetworkedRuntimeAttributesOnEntities() {
 				continue;
 			}
 
-			any rawValue = LoadFromAddressOffset(pAttributeEntry, g_CEconItemAttribute.m_flValue, NumberType_Int32);
+			any rawValue = LoadFromAddress(pAttributeEntry + g_CEconItemAttribute.m_flValue, NumberType_Int32);
 
 			// allow plugins to `TF2Attrib_Set*()` their own instances undisturbed by only
 			// processing attributes that we're aware of
@@ -1715,13 +1715,13 @@ stock Address AllocPooledString(const char[] value) {
 	return pValue;
 }
 
-stock int LoadFromAddressOffset(Address addr, int offset, NumberType size) {
-	return LoadFromAddress(addr + view_as<Address>(offset), size);
-}
+// stock int LoadFromAddressOffset(Address addr, int offset, NumberType size) {
+// 	return LoadFromAddress(addr + view_as<Address>(offset), size);
+// }
 
-stock void StoreToAddressOffset(Address addr, int offset, int data, NumberType size) {
-	StoreToAddress(addr + view_as<Address>(offset), data, size);
-}
+// stock void StoreToAddressOffset(Address addr, int offset, int data, NumberType size) {
+// 	StoreToAddress(addr + view_as<Address>(offset), data, size);
+// }
 
 stock int LoadStringFromAddress(Address addr, char[] buffer, int maxlen,
 		bool &bIsNullPointer = false) {
