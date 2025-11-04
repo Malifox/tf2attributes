@@ -1703,10 +1703,13 @@ stock Address AllocPooledString(const char[] value) {
 	if (offset <= 0) {
 		return Address_Null;
 	}
-	Address pOrig = view_as<Address>(GetEntData(ent, offset));
+
+	Address pEntity_m_iName = GetEntityAddress(ent) + view_as<Address>(offset);
+
+	Address pOrig = LoadAddressFromAddress(pEntity_m_iName);
 	DispatchKeyValue(ent, "targetname", value);
-	pValue = view_as<Address>(GetEntData(ent, offset));
-	SetEntData(ent, offset, pOrig);
+	pValue = LoadAddressFromAddress(pEntity_m_iName);
+	StoreAddressToAddress(pEntity_m_iName, pOrig);
 
 	g_AllocPooledStringCache.SetValue(value, pValue);
 	return pValue;
