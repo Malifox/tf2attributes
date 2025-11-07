@@ -48,6 +48,14 @@
 				"linux"		"11"
 				"linux64"	"11"
 			}
+			"OS"
+			{
+				"windows"	"1"
+				"windows64"	"2"
+				"linux"		"3"
+				"linux64"	"4"
+				"mac"		"5"
+			}
 		}
 		"Signatures"
 		{

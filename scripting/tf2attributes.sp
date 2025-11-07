@@ -23,6 +23,16 @@ public Plugin myinfo = {
 #define MAX_ATTRIBUTE_NAME_LENGTH 128
 #define MAX_ATTRIBUTE_VALUE_LENGTH PLATFORM_MAX_PATH
 
+enum OS {
+	OS_Unknown = 0,
+	OS_Windows,
+	OS_Windows64,
+	OS_Linux,
+	OS_Linux64,
+	OS_Mac,
+}
+OS g_OS;
+
 Handle hSDKGetItemDefinition;
 Handle hSDKGetSOCData;
 Handle hSDKSchema;
@@ -506,15 +516,21 @@ public int Native_IsReady(Handle plugin, int numParams) {
 }
 
 public void OnPluginStart() {
-	Handle hGameConf = LoadGameConfigFile("tf2.attributes");
+	GameData hGameConf = new GameData("tf2.attributes");
 	if (!hGameConf) {
 		SetFailState("Could not locate gamedata file tf2.attributes.txt for TF2Attributes, pausing plugin");
 	}
 
 	char pluginFailMessage[256];
-	if (GameConfGetKeyValue(hGameConf, "PluginFailMessage", pluginFailMessage,
+	if (hGameConf.GetKeyValue("PluginFailMessage", pluginFailMessage,
 			sizeof(pluginFailMessage)) && pluginFailMessage[0]) {
 		SetFailState(pluginFailMessage);
+	}
+
+	g_OS = view_as<OS>(hGameConf.GetOffset("OS"));
+
+	if (g_OS <= OS_Unknown) {
+		SetFailState("Missing \"OS\" gamedata offset");
 	}
 
 	StartPrepSDKCall(SDKCall_Raw);
