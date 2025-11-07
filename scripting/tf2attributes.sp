@@ -519,16 +519,16 @@ public void OnPluginStart() {
 
 	StartPrepSDKCall(SDKCall_Raw);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CEconItemSchema::GetItemDefinition");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Returns address of CEconItemDefinition
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);		//int iItemIndex
+	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain);	//Returns address of CEconItemDefinition
 	hSDKGetItemDefinition = EndPrepSDKCall();
 	if (!hSDKGetItemDefinition) {
 		SetFailState("Could not initialize call to CEconItemSchema::GetItemDefinition");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CEconItemView::GetSOCData");
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Returns address of CEconItem
+	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain);	//Returns address of CEconItem
 	hSDKGetSOCData = EndPrepSDKCall();
 	if (!hSDKGetSOCData) {
 		SetFailState("Could not initialize call to CEconItemView::GetSOCData");
@@ -536,44 +536,44 @@ public void OnPluginStart() {
 
 	StartPrepSDKCall(SDKCall_Static);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "GEconItemSchema");
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Returns address of CEconItemSchema
+	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain);	//Returns address of CEconItemSchema
 	hSDKSchema = EndPrepSDKCall();
 	if (!hSDKSchema) {
 		SetFailState("Could not initialize call to GEconItemSchema");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CEconItemSchema::GetAttributeDefinition");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Returns address of a CEconItemAttributeDefinition
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);		//int iAttribIndex
+	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain);	//Returns address of a CEconItemAttributeDefinition
 	hSDKGetAttributeDef = EndPrepSDKCall();
 	if (!hSDKGetAttributeDef) {
 		SetFailState("Could not initialize call to CEconItemSchema::GetAttributeDefinition");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CEconItemSchema::GetAttributeDefinitionByName");
-	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Returns address of a CEconItemAttributeDefinition
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);			//const char *pszDefName
+	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain);	//Returns address of a CEconItemAttributeDefinition
 	hSDKGetAttributeDefByName = EndPrepSDKCall();
 	if (!hSDKGetAttributeDefByName) {
 		SetFailState("Could not initialize call to CEconItemSchema::GetAttributeDefinitionByName");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CAttributeList::RemoveAttribute");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//not a clue what this return is
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain);	//const CEconItemAttributeDefinition *pAttrDef
+	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain);	//not a clue what this return is
 	hSDKRemoveAttribute = EndPrepSDKCall();
 	if (!hSDKRemoveAttribute) {
 		SetFailState("Could not initialize call to CAttributeList::RemoveAttribute");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CAttributeList::SetRuntimeAttributeValue");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
-	//PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); //const CEconItemAttributeDefinition *pAttrDef
+	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);			 //float flValue
+	//PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain);
 	//Apparently there's no return, so avoid setting return info, but the 'return' is nonzero if the attribute is added successfully
 	//Just a note, the above SDKCall returns ((entindex + 4) * 4) | 0xA000), and you can AND it with 0x1FFF to get back the entindex if you want, though it's pointless)
 	//I don't know any other specifics, such as if the highest 3 bits actually matter
@@ -584,24 +584,24 @@ public void OnPluginStart() {
 		SetFailState("Could not initialize call to CAttributeList::SetRuntimeAttributeValue");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CAttributeList::DestroyAllAttributes");
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain);
 	hSDKDestroyAllAttributes = EndPrepSDKCall();
 	if (!hSDKDestroyAllAttributes) {
 		SetFailState("Could not initialize call to CAttributeList::DestroyAllAttributes");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CAttributeList::GetAttributeByID");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Returns address of a CEconItemAttribute
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);		//int iAttributeID
+	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain);	//Returns address of a CEconItemAttribute
 	hSDKGetAttributeByID = EndPrepSDKCall();
 	if (!hSDKGetAttributeByID) {
 		SetFailState("Could not initialize call to CAttributeList::GetAttributeByID");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual, "CAttributeManager::OnAttributeValuesChanged");
 	hSDKOnAttribValuesChanged = EndPrepSDKCall();
 	if (!hSDKOnAttribValuesChanged) {
@@ -610,9 +610,9 @@ public void OnPluginStart() {
 
 	StartPrepSDKCall(SDKCall_Player);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CTFPlayer::AddCustomAttribute");
-	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
-	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
-	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);	//const char *pszAttributeName
+	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);		//float flValue
+	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);		//float flDuration
 	hSDKAddCustomAttribute = EndPrepSDKCall();
 	if (!hSDKAddCustomAttribute) {
 		SetFailState("Could not initialize call to CTFPlayer::AddCustomAttribute");
@@ -620,7 +620,7 @@ public void OnPluginStart() {
 
 	StartPrepSDKCall(SDKCall_Player);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CTFPlayer::RemoveCustomAttribute");
-	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);	//const char *pszAttributeName
 	hSDKRemoveCustomAttribute = EndPrepSDKCall();
 	if (!hSDKRemoveCustomAttribute) {
 		SetFailState("Could not initialize call to CTFPlayer::RemoveCustomAttribute");
@@ -632,7 +632,7 @@ public void OnPluginStart() {
 	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain); // initial value
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // attribute class
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // CUtlVector<CBaseEntity*>, set to nullptr
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // CUtlVector<CBaseEntity*>, set to nullptr
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool const_string
 	hSDKAttributeHookFloat = EndPrepSDKCall();
 	if (!hSDKAttributeHookFloat) {
@@ -645,7 +645,7 @@ public void OnPluginStart() {
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // initial value
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // attribute class
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // CUtlVector<CBaseEntity*>, set to nullptr
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // CUtlVector<CBaseEntity*>, set to nullptr
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool const_string
 	hSDKAttributeHookInt = EndPrepSDKCall();
 	if (!hSDKAttributeHookInt) {
@@ -657,26 +657,26 @@ public void OnPluginStart() {
 	// no subclasses override this virtual function so we'll just call it directly
 	StartPrepSDKCall(SDKCall_Static);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CAttributeManager::ApplyAttributeStringWrapper");
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain); // return string_t
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer); // return value
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // thisptr
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // string_t initial value
+	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain); // return string_t
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL); // return value
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // thisptr
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // string_t initial value
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // initator entity (should contain thisptr)
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // string_t attribute class
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // CUtlVector<CBaseEntity*>, set to nullptr
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // string_t attribute class
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // CUtlVector<CBaseEntity*>, set to nullptr
 	hSDKAttributeApplyStringWrapperLinux = EndPrepSDKCall();
 
 	if (!hSDKAttributeApplyStringWrapperLinux) {
 		// windows vcall. this one also uses a hidden pointer, but it's passed as the first param
 		// `this` remains unchanged so we can still use a vcall
-		StartPrepSDKCall(SDKCall_Raw);
+		StartPrepSDKCall(SDKCall_VirtualAddress);
 		PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual, "CAttributeManager::ApplyAttributeStringWrapper");
-		PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain); // return string_t
-		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer); // return value too
-		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // string_t initial value
+		PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain); // return string_t
+		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL); // return value too
+		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // string_t initial value
 		PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
-		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // string_t attribute class
-		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // CUtlVector<CBaseEntity*>, set to nullptr
+		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // string_t attribute class
+		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // CUtlVector<CBaseEntity*>, set to nullptr
 		hSDKAttributeApplyStringWrapperWindows = EndPrepSDKCall();
 	}
 
@@ -684,16 +684,16 @@ public void OnPluginStart() {
 		SetFailState("Could not initialize call to CAttributeManager::ApplyAttributeStringWrapper");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw); // CEconItemAttribute*
+	StartPrepSDKCall(SDKCall_VirtualAddress); // CEconItemAttribute*
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
 			"ISchemaAttributeTypeBase::InitializeNewEconAttributeValue");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, .encflags = VENCODE_FLAG_COPYBACK); // CAttributeDefinition*
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, .encflags = VENCODE_FLAG_COPYBACK); // attribute_data_union_t *out_pValue
 	hSDKAttributeValueInitialize = EndPrepSDKCall();
 	if (!hSDKAttributeValueInitialize) {
 		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::InitializeNewEconAttributeValue");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw); // attr_type
+	StartPrepSDKCall(SDKCall_VirtualAddress); // attr_type
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
 			"ISchemaAttributeTypeBase::BSupportsGame..."); // 64 chars ought to be enough for anyone -- dvander, probably
 	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
@@ -702,32 +702,32 @@ public void OnPluginStart() {
 		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::BSupportsGameplayModificationAndNetworking");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
 			"ISchemaAttributeTypeBase::BConvertStringToEconAttributeValue");
 	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, .encflags = VENCODE_FLAG_COPYBACK);
-	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);	//const CEconItemAttributeDefinition *pAttrDef
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//const char *pszValue
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, .encflags = VENCODE_FLAG_COPYBACK);	//union attribute_data_union_t *out_pValue
+	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//bool bEnableTerribleBackwardsCompatibilitySchemaParsingCode
 	hSDKAttributeValueFromString = EndPrepSDKCall();
 	if (!hSDKAttributeValueFromString) {
 		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::BConvertStringToEconAttributeValue");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
 			"ISchemaAttributeTypeBase::UnloadEconAttributeValue");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); //union attribute_data_union_t *out_pValue
 	hSDKAttributeValueUnload = EndPrepSDKCall();
 	if (!hSDKAttributeValueUnload) {
 		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::UnloadEconAttributeValue");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
 			"ISchemaAttributeTypeBase::UnloadEconAttributeValue");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer);
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Pointer); //union attribute_data_union_t *out_pValue
 	hSDKAttributeValueUnloadByRef = EndPrepSDKCall();
 	if (!hSDKAttributeValueUnloadByRef) {
 		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::UnloadEconAttributeValue");
@@ -736,8 +736,8 @@ public void OnPluginStart() {
 	StartPrepSDKCall(SDKCall_Static);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature,
 			"CopyStringAttributeValueToCharPointerOutput");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL, VENCODE_FLAG_COPYBACK); // char**, variable contains char* on return
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain);	//const CAttribute_String *pValue
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL, VENCODE_FLAG_COPYBACK); // char**, variable contains char* on return
 	hSDKCopyStringAttributeToCharPointer = EndPrepSDKCall();
 	if (!hSDKCopyStringAttributeToCharPointer) {
 		SetFailState("Could not initialize call to CopyStringAttributeValueToCharPointerOutput");
