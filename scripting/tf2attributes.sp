@@ -53,8 +53,10 @@ Handle hSDKAttributeApplyStringWrapperWindows;
 Handle hSDKAttributeApplyStringWrapperLinux;
 
 Handle hSDKAttributeValueInitialize;
+Handle hSDKAttributeValueInitialize_Virtual;
 Handle hSDKAttributeTypeCanBeNetworked;
 Handle hSDKAttributeValueFromString;
+Handle hSDKAttributeValueFromString_Virtual;
 Handle hSDKAttributeValueUnload;
 Handle hSDKAttributeValueUnloadByRef;
 Handle hSDKCopyStringAttributeToCharPointer;
@@ -721,6 +723,14 @@ public void OnPluginStart() {
 		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::InitializeNewEconAttributeValue");
 	}
 
+	// Duplicate SDKCall to specifically handle attribute_data_union_t byte *asBlobPointer
+	// attribute_data_union_t can contain a pointer and we can't handle both float/int and pointer variants with a single SDKCall
+	StartPrepSDKCall(SDKCall_VirtualAddress); // CEconItemAttribute*
+	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
+			"ISchemaAttributeTypeBase::InitializeNewEconAttributeValue");
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL, VENCODE_FLAG_COPYBACK); // attribute_data_union_t *out_pValue
+	hSDKAttributeValueInitialize_Virtual = EndPrepSDKCall();
+
 	StartPrepSDKCall(SDKCall_VirtualAddress); // attr_type
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
 			"ISchemaAttributeTypeBase::BSupportsGame..."); // 64 chars ought to be enough for anyone -- dvander, probably
@@ -740,6 +750,21 @@ public void OnPluginStart() {
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//bool bEnableTerribleBackwardsCompatibilitySchemaParsingCode
 	hSDKAttributeValueFromString = EndPrepSDKCall();
 	if (!hSDKAttributeValueFromString) {
+		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::BConvertStringToEconAttributeValue");
+	}
+
+	// Duplicate SDKCall to specifically handle attribute_data_union_t byte *asBlobPointer
+	// attribute_data_union_t can contain a pointer and we can't handle both float/int and pointer variants with a single SDKCall
+	StartPrepSDKCall(SDKCall_VirtualAddress);
+	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
+			"ISchemaAttributeTypeBase::BConvertStringToEconAttributeValue");
+	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);	//const CEconItemAttributeDefinition *pAttrDef
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//const char *pszValue
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL, VENCODE_FLAG_COPYBACK);	//union attribute_data_union_t *out_pValue
+	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//bool bEnableTerribleBackwardsCompatibilitySchemaParsingCode
+	hSDKAttributeValueFromString_Virtual = EndPrepSDKCall();
+	if (!hSDKAttributeValueFromString_Virtual) {
 		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::BConvertStringToEconAttributeValue");
 	}
 
@@ -844,7 +869,11 @@ static int GetStaticAttribs(Address pItemDef, int[] iAttribIndices, int[] iAttri
 	for (int i = 0; i < iNumAttribs && i < size; i++) {
 		Address pStaticAttrib = pAttribList + view_as<Address>(i * g_static_attrib_t.iSizeOf);
 		iAttribIndices[i] = LoadFromAddress(pStaticAttrib, NumberType_Int16); // g_static_attrib_t.iDefIndex
-		iAttribValues[i] = LoadFromAddress(pStaticAttrib + g_static_attrib_t.m_value, NumberType_Int32);
+
+		if (IsAttributeString(iAttribIndices[i]))
+			iAttribValues[i] = LoadAddressFromAddress(pStaticAttrib + g_static_attrib_t.m_value);
+		else
+			iAttribValues[i] = LoadFromAddress(pStaticAttrib + g_static_attrib_t.m_value, NumberType_Int32);
 	}
 	return iNumAttribs;
 }
@@ -911,7 +940,10 @@ static int GetSOCAttribs(int iEntity, int[] iAttribIndices, int[] iAttribValues,
 			Address pSOCAttribEntry = pCustomDataArray + view_as<Address>(i * g_static_attrib_t.iSizeOf);
 
 			iAttribIndices[i] = LoadFromAddress(pSOCAttribEntry, NumberType_Int16); // g_static_attrib_t.iDefIndex
-			iAttribValues[i] = LoadFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value, NumberType_Int32);
+			if (IsAttributeString(iAttribIndices[i]))
+				iAttribValues[i] = LoadAddressFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value);
+			else
+				iAttribValues[i] = LoadFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value, NumberType_Int32);
 		}
 		return iCount;
 	}
@@ -1489,45 +1521,56 @@ static bool InitializeAttributeValue(Address pAttributeList, int attrdef, const 
 
 	if (!networked) {
 		// reusing any existing matching attribute value strings
-		Address rawAttributeValue = GetHeapManagedAttributeString(attrdef, value);
+		Address rawAttributeValue = GetHeapManagedAttributeString(attrdef, value); // This assumes the union value type will be a pointer
 		if (rawAttributeValue) {
 			SDKCall(hSDKSetRuntimeValue, pAttributeList, pAttrDef, view_as<float>(rawAttributeValue));
 			return true;
 		}
+
+		/**
+		 * initialize raw value; any existing values present in the CEconItemAttribute* are trashed
+		 *
+		 * that is okay -- tf2attributes is the only one managing heap-allocated values, and
+		 * it holds its own reference to the value for freeing later
+		 *
+		 * we don't attempt to free any existing attribute value mid-game as we don't know if
+		 * the value is present in multiple places (no refcounts!)
+		 */
+		SDKCall(hSDKAttributeValueInitialize_Virtual, pDefType, rawAttributeValue);
+
+		if (!SDKCall(hSDKAttributeValueFromString_Virtual, pDefType, pAttrDef, value, rawAttributeValue, true)) {
+			// in case AttributeValueInitialize created a pointer, unload it
+			if (rawAttributeValue)
+				UnloadAttributeRawValue(pAttrDef, rawAttributeValue);
+			// we couldn't parse the attribute value, abort
+			return false;
+		}
+
+		// This wizardry happens to still work because virtual addresses are always 4 bytes
+		SDKCall(hSDKSetRuntimeValue, pAttributeList, pAttrDef, view_as<float>(rawAttributeValue));
+
+		// add to our managed values
+		// this definitely works for heap, not sure if it works for inline
+		HeapAttributeValue attribute;
+		attribute.m_iAttributeDefinitionIndex = attrdef;
+		attribute.m_pAttributeValue = rawAttributeValue;
+
+		g_ManagedAllocatedValues.PushArray(attribute);
+
+		return true;
 	}
 
-	// since attribute value is a union of 32 bit types, this is okay
+	// attribute value is a union of int, float, and pointer types, we assume networked won't ever be a pointer
 	int attributeValue = 0;
 
-	/**
-	 * initialize raw value; any existing values present in the CEconItemAttribute* are trashed
-	 *
-	 * that is okay -- tf2attributes is the only one managing heap-allocated values, and
-	 * it holds its own reference to the value for freeing later
-	 *
-	 * we don't attempt to free any existing attribute value mid-game as we don't know if
-	 * the value is present in multiple places (no refcounts!)
-	 */
 	SDKCall(hSDKAttributeValueInitialize, pDefType, attributeValue);
 
 	if (!SDKCall(hSDKAttributeValueFromString, pDefType, pAttrDef, value, attributeValue, true)) {
-		// in case AttributeValueInitialize created a pointer, unload it
-		UnloadAttributeRawValue(pAttrDef, view_as<Address>(attributeValue));
 		// we couldn't parse the attribute value, abort
 		return false;
 	}
 
 	SDKCall(hSDKSetRuntimeValue, pAttributeList, pAttrDef, view_as<float>(attributeValue));
-
-	if (!networked) {
-		// add to our managed values
-		// this definitely works for heap, not sure if it works for inline
-		HeapAttributeValue attribute;
-		attribute.m_iAttributeDefinitionIndex = attrdef;
-		attribute.m_pAttributeValue = view_as<Address>(attributeValue);
-
-		g_ManagedAllocatedValues.PushArray(attribute);
-	}
 	return true;
 }
 
@@ -1564,6 +1607,8 @@ static Address GetHeapManagedAttributeString(int attrdef, const char[] value) {
 /**
  * Returns true if the given attribute type can (normally) be networked.
  * We make the assumption that non-networked attributes have to be heap / inline allocated.
+ * This should correlate with an attribute's "attribute_type" value listed in items_game.txt.
+ * If the "attribute_type" key is missing or has value "float"(never used), then it is networked.
  */
 static bool IsNetworkedRuntimeAttribute(Address pDefType) {
 	return SDKCall(hSDKAttributeTypeCanBeNetworked, pDefType);
