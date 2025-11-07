@@ -57,7 +57,7 @@ Handle hSDKAttributeValueInitialize_Virtual;
 Handle hSDKAttributeTypeCanBeNetworked;
 Handle hSDKAttributeValueFromString;
 Handle hSDKAttributeValueFromString_Virtual;
-Handle hSDKAttributeValueUnload;
+// Handle hSDKAttributeValueUnload;
 Handle hSDKAttributeValueUnloadByRef;
 Handle hSDKCopyStringAttributeToCharPointer;
 
@@ -768,14 +768,14 @@ public void OnPluginStart() {
 		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::BConvertStringToEconAttributeValue");
 	}
 
-	StartPrepSDKCall(SDKCall_VirtualAddress);
-	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
-			"ISchemaAttributeTypeBase::UnloadEconAttributeValue");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); //union attribute_data_union_t *out_pValue
-	hSDKAttributeValueUnload = EndPrepSDKCall();
-	if (!hSDKAttributeValueUnload) {
-		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::UnloadEconAttributeValue");
-	}
+	// StartPrepSDKCall(SDKCall_VirtualAddress);
+	// PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
+	// 		"ISchemaAttributeTypeBase::UnloadEconAttributeValue");
+	// PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); //union attribute_data_union_t *out_pValue
+	// hSDKAttributeValueUnload = EndPrepSDKCall();
+	// if (!hSDKAttributeValueUnload) {
+	// 	SetFailState("Could not initialize call to ISchemaAttributeTypeBase::UnloadEconAttributeValue");
+	// }
 
 	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
