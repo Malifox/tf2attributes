@@ -533,7 +533,7 @@ public void OnPluginStart() {
 		SetFailState("Missing \"OS\" gamedata offset");
 	}
 
-	StartPrepSDKCall(SDKCall_Raw);
+	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CEconItemSchema::GetItemDefinition");
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);		//int iItemIndex
 	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain);	//Returns address of CEconItemDefinition
@@ -645,11 +645,22 @@ public void OnPluginStart() {
 	StartPrepSDKCall(SDKCall_Static);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CAttributeManager::AttribHookValue<float>");
 	PrepSDKCall_SetReturnInfo(SDKType_Float, SDKPass_Plain);
-	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain); // initial value
-	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // attribute class
-	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
-	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // CUtlVector<CBaseEntity*>, set to nullptr
-	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool const_string
+	if (g_OS == OS_Linux64) // initial value is changed from being the first parameter to being the last
+	{
+		PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // attribute class
+		PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
+		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // CUtlVector<CBaseEntity*>, set to nullptr
+		PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool const_string
+		PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain); // initial value
+	}
+	else
+	{
+		PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain); // initial value
+		PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // attribute class
+		PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
+		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // CUtlVector<CBaseEntity*>, set to nullptr
+		PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool const_string
+	}
 	hSDKAttributeHookFloat = EndPrepSDKCall();
 	if (!hSDKAttributeHookFloat) {
 		SetFailState("Could not initialize call to CAttributeManager::AttribHookValue<float>");
@@ -674,7 +685,8 @@ public void OnPluginStart() {
 	StartPrepSDKCall(SDKCall_Static);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CAttributeManager::ApplyAttributeStringWrapper");
 	PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain); // return string_t
-	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL); // return value
+	if (PointerSize == view_as<Address>(4)) // Magically disappears on x64 linux
+		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL); // return value
 	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // thisptr
 	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // string_t initial value
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // initator entity (should contain thisptr)
@@ -1306,6 +1318,11 @@ public int Native_HookValueFloat(Handle plugin, int numParams) {
 
 	int entity = GetNativeCell(3);
 
+	if (g_OS == OS_Linux64) {
+		return SDKCall(hSDKAttributeHookFloat, attrClass, entity,
+			Address_Null, false, initial);
+	}
+
 	return SDKCall(hSDKAttributeHookFloat, initial, attrClass, entity,
 			Address_Null, false);
 }
@@ -1352,17 +1369,29 @@ public int Native_HookValueString(Handle plugin, int numParams) {
 		// windows version; hidden ptr pushes params, `this` still in correct register
 		Address result;
 		pOutput = SDKCall(hSDKAttributeApplyStringWrapperWindows,
-				GetEntityAttributeManager(entity), result, pInput, entity, pAttrClass,
-				Address_Null);
-	} else if (hSDKAttributeApplyStringWrapperLinux) {
-		// linux version; hidden ptr moves the stack and this forward
-		Address result;
-		pOutput = SDKCall(hSDKAttributeApplyStringWrapperLinux, result,
-				GetEntityAttributeManager(entity), pInput, entity, pAttrClass, Address_Null);
-	}
+			GetEntityAttributeManager(entity), result, pInput, entity, pAttrClass, Address_Null);
 
-	// read from the output string_t
-	LoadStringFromAddress(LoadAddressFromAddress(pOutput), output, buflen);
+		// read from the output string_t
+		LoadStringFromAddress(LoadAddressFromAddress(pOutput), output, buflen);
+
+	} else if (hSDKAttributeApplyStringWrapperLinux) {
+		if (PointerSize == view_as<Address>(8)) // linux64 version
+		{
+			pOutput = SDKCall(hSDKAttributeApplyStringWrapperLinux, GetEntityAttributeManager(entity),
+				pInput, entity, pAttrClass, Address_Null);
+
+			LoadStringFromAddress(pOutput, output, buflen);
+		}
+		else
+		{
+			// linux version; hidden ptr moves the stack and this forward
+			Address result;
+			pOutput = SDKCall(hSDKAttributeApplyStringWrapperLinux, result,
+				GetEntityAttributeManager(entity), pInput, entity, pAttrClass, Address_Null);
+
+			LoadStringFromAddress(LoadAddressFromAddress(pOutput), output, buflen);
+		}
+	}
 
 	int written;
 	SetNativeString(4, output, buflen, .bytes = written);
