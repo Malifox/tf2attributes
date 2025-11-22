@@ -67,6 +67,8 @@ StringMap g_AttributeDefinitionMapping;
 // caches string_t instances from AllocPooledString
 StringMap g_AllocPooledStringCache;
 
+IntMap g_imapAttrIsNetworked;
+
 /** Address Offsets **/
 enum struct CUtlVector
 {
@@ -83,7 +85,7 @@ CUtlVector g_CUtlVector;
 
 enum struct CAttributeList
 {
-	Address m_Attributes; // /CUtlVector<CEconItemAttribute>
+	Address m_Attributes; // CUtlVector<CEconItemAttribute>
 	Address m_Attributes_m_Size; // int
 	Address m_pManager; // CAttributeManager*
 
@@ -166,6 +168,7 @@ enum struct CEconItemAttributeDefinition
 			// this.m_bCanAffectRecipeComponentName = view_as<Address>(89);
 			// this.m_ItemDefinitionTag = view_as<Address>(92);
 			// this.m_iszAttributeClass = view_as<Address>(96);
+			// this.iSizeOf = 104;
 		}
 		else
 		{
@@ -188,6 +191,7 @@ enum struct CEconItemAttributeDefinition
 			// this.m_bCanAffectRecipeComponentName = view_as<Address>(57);
 			// this.m_ItemDefinitionTag = view_as<Address>(60);
 			// this.m_iszAttributeClass = view_as<Address>(64);
+			// this.iSizeOf = 68;
 		}
 	}
 }
@@ -804,6 +808,7 @@ public void OnPluginStart() {
 
 	g_ManagedAllocatedValues = new ArrayList(sizeof(HeapAttributeValue));
 	g_AttributeDefinitionMapping = new StringMap();
+	g_imapAttrIsNetworked = new IntMap();
 
 	g_AllocPooledStringCache = new StringMap();
 
@@ -869,11 +874,9 @@ static int GetStaticAttribs(Address pItemDef, int[] iAttribIndices, int[] iAttri
 	for (int i = 0; i < iNumAttribs && i < size; i++) {
 		Address pStaticAttrib = pAttribList + view_as<Address>(i * g_static_attrib_t.iSizeOf);
 		iAttribIndices[i] = LoadFromAddress(pStaticAttrib, NumberType_Int16); // g_static_attrib_t.iDefIndex
-
-		if (IsAttributeString(iAttribIndices[i]))
-			iAttribValues[i] = LoadAddressFromAddress(pStaticAttrib + g_static_attrib_t.m_value);
-		else
-			iAttribValues[i] = LoadFromAddress(pStaticAttrib + g_static_attrib_t.m_value, NumberType_Int32);
+		iAttribValues[i] = IsNetworkedByDefIndex(iAttribIndices[i])
+			? LoadFromAddress(pStaticAttrib + g_static_attrib_t.m_value, NumberType_Int32)
+			: LoadAddressFromAddress(pStaticAttrib + g_static_attrib_t.m_value);
 	}
 	return iNumAttribs;
 }
@@ -940,10 +943,9 @@ static int GetSOCAttribs(int iEntity, int[] iAttribIndices, int[] iAttribValues,
 			Address pSOCAttribEntry = pCustomDataArray + view_as<Address>(i * g_static_attrib_t.iSizeOf);
 
 			iAttribIndices[i] = LoadFromAddress(pSOCAttribEntry, NumberType_Int16); // g_static_attrib_t.iDefIndex
-			if (IsAttributeString(iAttribIndices[i]))
-				iAttribValues[i] = LoadAddressFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value);
-			else
-				iAttribValues[i] = LoadFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value, NumberType_Int32);
+			iAttribValues[i] = IsNetworkedByDefIndex(iAttribIndices[i])
+				? LoadFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value, NumberType_Int32)
+				: LoadAddressFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value);
 		}
 		return iCount;
 	}
@@ -1612,6 +1614,23 @@ static Address GetHeapManagedAttributeString(int attrdef, const char[] value) {
  */
 static bool IsNetworkedRuntimeAttribute(Address pDefType) {
 	return SDKCall(hSDKAttributeTypeCanBeNetworked, pDefType);
+}
+
+bool IsNetworkedByDefIndex(int attrdef) {
+	bool bNetworked;
+
+	if (g_imapAttrIsNetworked.GetValue(attrdef, bNetworked))
+		return bNetworked;
+
+	Address pAttrDef = GetAttributeDefinitionByID(attrdef);
+	if (!pAttrDef)
+		return false;
+
+	Address pDefType = LoadAddressFromAddress(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
+	bNetworked = IsNetworkedRuntimeAttribute(pDefType);
+	g_imapAttrIsNetworked.SetValue(attrdef, bNetworked);
+
+	return bNetworked;
 }
 
 /**
