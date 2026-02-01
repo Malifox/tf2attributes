@@ -57,7 +57,6 @@ Handle hSDKAttributeValueInitialize_Virtual;
 Handle hSDKAttributeTypeCanBeNetworked;
 Handle hSDKAttributeValueFromString;
 Handle hSDKAttributeValueFromString_Virtual;
-// Handle hSDKAttributeValueUnload;
 Handle hSDKAttributeValueUnloadByRef;
 Handle hSDKCopyStringAttributeToCharPointer;
 
@@ -741,15 +740,6 @@ public void OnPluginStart() {
 	if (!hSDKAttributeValueFromString_Virtual) {
 		SetFailState("Could not initialize call to ISchemaAttributeTypeBase::BConvertStringToEconAttributeValue");
 	}
-	
-	// StartPrepSDKCall(SDKCall_VirtualAddress);
-	// PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
-	// 		"ISchemaAttributeTypeBase::UnloadEconAttributeValue");
-	// PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); //union attribute_data_union_t *out_pValue
-	// hSDKAttributeValueUnload = EndPrepSDKCall();
-	// if (!hSDKAttributeValueUnload) {
-	// 	SetFailState("Could not initialize call to ISchemaAttributeTypeBase::UnloadEconAttributeValue");
-	// }
 	
 	StartPrepSDKCall(SDKCall_VirtualAddress);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual,
@@ -1604,17 +1594,6 @@ bool IsNetworkedByDefIndex(int attrdef) {
 }
 
 /**
- * Unloads the attribute in a given CEconItemAttribute instance.
- */
-// #pragma unused UnloadAttributeValue
-// static void UnloadAttributeValue(Address pAttrDef, Address pEconItemAttribute) {
-// 	Address pDefType = DereferencePointer(pAttrDef + view_as<Address>(0x08));
-// 	Address pAttributeValue = pEconItemAttribute + view_as<Address>(0x08);
-
-// 	SDKCall(hSDKAttributeValueUnload, pDefType, pAttributeValue);
-// }
-
-/**
  * Unloads the given raw attribute value.
  */
 static void UnloadAttributeRawValue(Address pAttrDef, Address pAttributeValue) {
@@ -1794,14 +1773,6 @@ stock Address AllocPooledString(const char[] value) {
 	return pValue;
 }
 
-// stock int LoadFromAddressOffset(Address addr, int offset, NumberType size) {
-// 	return LoadFromAddress(addr + view_as<Address>(offset), size);
-// }
-
-// stock void StoreToAddressOffset(Address addr, int offset, int data, NumberType size) {
-// 	StoreToAddress(addr + view_as<Address>(offset), data, size);
-// }
-
 stock int LoadStringFromAddress(Address addr, char[] buffer, int maxlen,
 		bool &bIsNullPointer = false) {
 	if (!addr) {
@@ -1826,23 +1797,8 @@ void AssertValidAddress(Address pAddress) {
 	if (pAddress == Address_Null) {
 		ThrowError("Received invalid address (NULL)");
 	}
-	
-	// static Address Address_MinimumValid = view_as<Address>(0x10000); // Addresses are now virtual addresses, so this check is not valid anymore
-	
-	// if (unsigned_compare(view_as<int>(pAddress), view_as<int>(Address_MinimumValid)) < 0) {
-	// 	ThrowError("Received invalid address (%08x)", pAddress);
-	// }
 }
 
-// stock int unsigned_compare(int a, int b) {
-// 	if (a == b) {
-// 		return 0;
-// 	}
-// 	if ((a >>> 31) == (b >>> 31)) {
-// 		return ((a & 0x7FFFFFFF) > (b & 0x7FFFFFFF)) ? 1 : -1;
-// 	}
-// 	return ((a >>> 31) > (b >>> 31)) ? 1 : -1;
-// }
 /*
 struct CEconItemAttributeDefinition
 {
