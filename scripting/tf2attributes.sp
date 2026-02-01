@@ -70,12 +70,10 @@ StringMap g_AllocPooledStringCache;
 IntMap g_imapAttrIsNetworked;
 
 /** Address Offsets **/
-enum struct CUtlVector
-{
+enum struct CUtlVector {
 	Address m_size; // int
 	
-	void Init()
-	{
+	void Init() {
 		// this.m_memory = view_as<Address>(0); // CUtlMemory<T> {T* m_pMemory, int m_nAllocationCount, int m_nGrowSize}
 		this.m_size = PointerSize + view_as<Address>(4 + 4); // 12/16
 		// this.m_pElements = this.m_size + PointerSize; // 16/24(+ 4 padding) T*
@@ -83,24 +81,19 @@ enum struct CUtlVector
 }
 CUtlVector g_CUtlVector;
 
-enum struct CAttributeList
-{
+enum struct CAttributeList {
 	Address m_Attributes; // CUtlVector<CEconItemAttribute>
 	Address m_Attributes_m_Size; // int
 	Address m_pManager; // CAttributeManager*
 	
-	void Init()
-	{
+	void Init() {
 		// vfptr = 0;
 		this.m_Attributes = PointerSize; //CUtlVector<CEconItemAttribute>
 		
-		if (PointerSize == view_as<Address>(8))
-		{
+		if (PointerSize == view_as<Address>(8)) {
 			this.m_Attributes_m_Size = view_as<Address>(24); // m_Attributes + 16(sizeof(CUtlMemory), PointerSize + 4 + 4)
 			this.m_pManager = view_as<Address>(40);
-		}
-		else
-		{
+		} else {
 			this.m_Attributes_m_Size = view_as<Address>(16); // m_Attributes + 12(sizeof(CUtlMemory), PointerSize + 4 + 4)
 			this.m_pManager = view_as<Address>(24);
 		}
@@ -108,26 +101,21 @@ enum struct CAttributeList
 }
 CAttributeList g_CAttributeList;
 
-enum struct CEconItemAttribute
-{
+enum struct CEconItemAttribute {
 	Address m_iAttributeDefinitionIndex; // attrib_definition_index_t (u16)
 	Address m_flValue; // float
 	Address m_nRefundableCurrency; // int
 	int iSizeOf;
 	
-	void Init()
-	{
+	void Init() {
 		//vfptr = 0;
 		this.m_iAttributeDefinitionIndex = PointerSize;
 		
-		if (PointerSize == view_as<Address>(8))
-		{
+		if (PointerSize == view_as<Address>(8)) {
 			this.m_flValue = view_as<Address>(12);
 			this.m_nRefundableCurrency = view_as<Address>(16);
 			this.iSizeOf = 24;
-		}
-		else
-		{
+		} else {
 			this.m_flValue = view_as<Address>(8);
 			this.m_nRefundableCurrency = view_as<Address>(12);
 			this.iSizeOf = 16;
@@ -136,19 +124,16 @@ enum struct CEconItemAttribute
 }
 CEconItemAttribute g_CEconItemAttribute;
 
-enum struct CEconItemAttributeDefinition
-{
+enum struct CEconItemAttributeDefinition {
 	Address m_nDefIndex;
 	Address m_pAttrType;
 	Address m_bStoredAsInteger;
 	
-	void Init()
-	{
+	void Init() {
 		// this.m_pKVAttribute = view_as<Address>(0);
 		this.m_nDefIndex = PointerSize;
 		
-		if (PointerSize == view_as<Address>(8))
-		{
+		if (PointerSize == view_as<Address>(8)) {
 			this.m_pAttrType = view_as<Address>(16);
 			// this.m_bHidden = view_as<Address>(24);
 			// this.m_bWebSchemaOutputForced = view_as<Address>(25);
@@ -169,9 +154,7 @@ enum struct CEconItemAttributeDefinition
 			// this.m_ItemDefinitionTag = view_as<Address>(92);
 			// this.m_iszAttributeClass = view_as<Address>(96);
 			// this.iSizeOf = 104;
-		}
-		else
-		{
+		} else {
 			this.m_pAttrType = view_as<Address>(8);
 			// this.m_bHidden = view_as<Address>(12);
 			// this.m_bWebSchemaOutputForced = view_as<Address>(13);
@@ -204,16 +187,14 @@ enum struct CEconItem
 	Address m_CustomAttribSingleton_m_flValue; // attribute_t + 4
 	Address m_pCustomData; // CEconItemCustomData* {CUtlVector< CEconItem::attribute_t > m_vecAttributes, CEconItem* m_pInteriorItem, uint64 m_ulOriginalID, uint16 m_unQuantity}
 	
-	void Init()
-	{
+	void Init() {
 		// GCSDK::CSharedObject {vfptr} = 0
 		// IEconItemInterface {vfptr} = pointersize
 		// this.m_pszSmallIcon = PointerSize * view_as<Address>(2); // 8/16
 		// this.m_pszLargeIcon = PointerSize * view_as<Address>(3); // 12/24
 		// this.m_ulID = PointerSize * view_as<Address>(4); // 16/32
 		
-		if (PointerSize == view_as<Address>(8))
-		{
+		if (PointerSize == view_as<Address>(8)) {
 			// this.m_unAccountID = view_as<Address>(40);
 			// this.m_unInventory = view_as<Address>(44);
 			// this.m_unDefIndex = view_as<Address>(48);
@@ -227,9 +208,7 @@ enum struct CEconItem
 			this.m_CustomAttribSingleton_m_unDefinitionIndex = view_as<Address>(64); // attribute_t + 0
 			this.m_CustomAttribSingleton_m_flValue = view_as<Address>(72);			 // attribute_t + PointerSize(alignment)
 			this.m_pCustomData = view_as<Address>(80);
-		}
-		else
-		{
+		} else {
 			// this.m_unAccountID = view_as<Address>(24);
 			// this.m_unInventory = view_as<Address>(28);
 			// this.m_unDefIndex = view_as<Address>(32);
@@ -248,19 +227,16 @@ enum struct CEconItem
 }
 CEconItem g_CEconItem;
 
-enum struct CEconItemDefinition
-{
+enum struct CEconItemDefinition {
 	Address m_vecStaticAttributes; // CUtlVector<static_attrib_t>
 	Address m_vecStaticAttributes_m_Size; // int
 	
-	void Init()
-	{
+	void Init() {
 		// vfptr = 0;
 		// this.m_pKVItem = PointerSize;
 		// this.m_nDefIndex = PointerSize * view_as<Address>(2); // 8/16
 		
-		if (PointerSize == view_as<Address>(8))
-		{
+		if (PointerSize == view_as<Address>(8)) {
 			// this.m_nRemappedDefIndex = view_as<Address>(18);
 			// this.m_pszRemappedDefItemName = view_as<Address>(24);
 			// this.m_bEnabled = view_as<Address>(32);
@@ -345,9 +321,7 @@ enum struct CEconItemDefinition
 			// this.m_vecTags = view_as<Address>(576);
 			// this.m_vecContainingBundleItemDefs = view_as<Address>(608);
 			// this.m_vecSteamWorkshopContributors = view_as<Address>(640);
-		}
-		else
-		{
+		} else {
 			// this.m_nRemappedDefIndex = view_as<Address>(10);
 			// this.m_pszRemappedDefItemName = view_as<Address>(12);
 			// this.m_bEnabled = view_as<Address>(16);
@@ -437,14 +411,12 @@ enum struct CEconItemDefinition
 }
 CEconItemDefinition g_CEconItemDefinition;
 
-enum struct static_attrib_t
-{
+enum struct static_attrib_t {
 	Address iDefIndex; // attrib_definition_index_t (u16)
 	Address m_value; // union attribute_data_union_t {float asFloat; uint32 asUint32; byte *asBlobPointer;}
 	int iSizeOf;
 	
-	void Init()
-	{
+	void Init() {
 		this.iDefIndex = view_as<Address>(0);
 		this.m_value = PointerSize; // alignment
 		this.iSizeOf = PointerSize * view_as<Address>(2);
@@ -651,16 +623,14 @@ public void OnPluginStart() {
 	StartPrepSDKCall(SDKCall_Static);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CAttributeManager::AttribHookValue<float>");
 	PrepSDKCall_SetReturnInfo(SDKType_Float, SDKPass_Plain);
-	if (g_OS == OS_Linux64) // initial value is changed from being the first parameter to being the last
-	{
+	if (g_OS == OS_Linux64) {
+		// initial value is changed from being the first parameter to being the last
 		PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // attribute class
 		PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
 		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // CUtlVector<CBaseEntity*>, set to nullptr
 		PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool const_string
 		PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain); // initial value
-	}
-	else
-	{
+	} else {
 		PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain); // initial value
 		PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // attribute class
 		PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
@@ -1409,15 +1379,13 @@ public int Native_HookValueString(Handle plugin, int numParams) {
 		LoadStringFromAddress(LoadAddressFromAddress(pOutput), output, buflen);
 		
 	} else if (hSDKAttributeApplyStringWrapperLinux) {
-		if (PointerSize == view_as<Address>(8)) // linux64 version
-		{
+		if (PointerSize == view_as<Address>(8)) {
+			// linux64 version
 			pOutput = SDKCall(hSDKAttributeApplyStringWrapperLinux, GetEntityAttributeManager(entity),
 				pInput, entity, pAttrClass, Address_Null);
 			
 			LoadStringFromAddress(pOutput, output, buflen);
-		}
-		else
-		{
+		} else {
 			// linux version; hidden ptr moves the stack and this forward
 			Address result;
 			pOutput = SDKCall(hSDKAttributeApplyStringWrapperLinux, result,
@@ -1619,12 +1587,14 @@ static bool IsNetworkedRuntimeAttribute(Address pDefType) {
 bool IsNetworkedByDefIndex(int attrdef) {
 	bool bNetworked;
 	
-	if (g_imapAttrIsNetworked.GetValue(attrdef, bNetworked))
+	if (g_imapAttrIsNetworked.GetValue(attrdef, bNetworked)) {
 		return bNetworked;
+	}
 	
 	Address pAttrDef = GetAttributeDefinitionByID(attrdef);
-	if (!pAttrDef)
+	if (!pAttrDef) {
 		return false;
+	}
 	
 	Address pDefType = LoadAddressFromAddress(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType);
 	bNetworked = IsNetworkedRuntimeAttribute(pDefType);
