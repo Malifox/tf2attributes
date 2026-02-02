@@ -663,7 +663,7 @@ public void OnPluginStart() {
 	if (PointerSize == view_as<Address>(4)) // Magically disappears on x64 linux
 		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL); // return value
 	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // thisptr
-	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // string_t initial value
+	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // string_t initial value
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // initator entity (should contain thisptr)
 	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // string_t attribute class
 	PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // CUtlVector<CBaseEntity*>, set to nullptr
@@ -676,7 +676,7 @@ public void OnPluginStart() {
 		PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual, "CAttributeManager::ApplyAttributeStringWrapper");
 		PrepSDKCall_SetReturnInfo(SDKType_VirtualAddress, SDKPass_Plain); // return string_t
 		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL); // return value too
-		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // string_t initial value
+		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // string_t initial value
 		PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer); // CBaseEntity* entity
 		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain); // string_t attribute class
 		PrepSDKCall_AddParameter(SDKType_VirtualAddress, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // CUtlVector<CBaseEntity*>, set to nullptr

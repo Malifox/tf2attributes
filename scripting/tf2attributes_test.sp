@@ -466,7 +466,7 @@ void Test_TF2Attrib_HookValueString(int client, int iWeapon)
 
 	char sInitial[] = " yip!";
 
-	LogTest(client, LogType_Info, "TF2Attrib_HookValueString on 'custom_name_attr'", sInitial);
+	LogTest(client, LogType_Info, "TF2Attrib_HookValueString on 'custom_name_attr'");
 	char sNameTag[64];
 	int iLen = TF2Attrib_HookValueString(sInitial, "custom_name_attr", iWeapon, sNameTag, sizeof(sNameTag));
 
@@ -487,6 +487,10 @@ void Test_TF2Attrib_HookValueString(int client, int iWeapon)
 	{
 		LogTest(client, LogType_Info, "TF2Attrib_HookValueString returned name tag '%s'", sNameTag);
 	}
+
+	// This just checks that passing an empty initial string doesn't trigger the null address check: "NULL Address not allowed"
+	LogTest(client, LogType_Info, "TF2Attrib_HookValueString with empty initial string passed in");
+	TF2Attrib_HookValueString("", "custom_name_attr", iWeapon, sNameTag, sizeof(sNameTag));
 
 	LogTest(client, LogType_Passed, sTest);
 }
