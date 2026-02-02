@@ -288,7 +288,7 @@ void Test_TF2Attrib_GetStaticAttribs(int client, int iWeapon)
 		if (iNumAttr == -1)
 			LogTest(client, LogType_Failed, "TF2Attrib_GetStaticAttribs returned -1: no schema or item definition found");
 		else
-			LogTest(client, LogType_Failed, "TF2Attrib_GetStaticAttribs returned 0 attributes", iNumAttr);
+			LogTest(client, LogType_Failed, "TF2Attrib_GetStaticAttribs returned 0 attributes");
 
 		return;
 	}
@@ -481,14 +481,14 @@ void Test_TF2Attrib_HookValueString(int client, int iWeapon)
 	{
 		LogTest(client, LogType_Warn, "TF2Attrib_HookValueString output matches initial string. " ...
 			"This should only happen if tested on an item without 'custom_name_attr' attribute (name tag), " ...
-			"probably fine though if so and no crash", sNameTag, sInitial);
+			"probably fine though if so and no crash");
 	}
 	else
 	{
 		LogTest(client, LogType_Info, "TF2Attrib_HookValueString returned name tag '%s'", sNameTag);
 	}
 
-	// This just checks that passing an empty initial string doesn't trigger the null address check: "NULL Address not allowed"
+	// This just checks that passing an empty initial string doesn't trigger the null address error: "NULL Address not allowed"
 	LogTest(client, LogType_Info, "TF2Attrib_HookValueString with empty initial string passed in");
 	TF2Attrib_HookValueString("", "custom_name_attr", iWeapon, sNameTag, sizeof(sNameTag));
 
