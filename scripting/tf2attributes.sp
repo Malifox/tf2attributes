@@ -73,8 +73,8 @@ enum struct CUtlVector {
 
 	void Init() {
 		// this.m_memory = view_as<Address>(0); // CUtlMemory<T> {T* m_pMemory, int m_nAllocationCount, int m_nGrowSize}
-		this.m_size = PointerSize + view_as<Address>(4 + 4); // 12/16
-		// this.m_pElements = this.m_size + PointerSize; // 16/24(+ 4 padding) T*
+		this.m_size = Address_PointerSize + view_as<Address>(4 + 4); // 12/16
+		// this.m_pElements = this.m_size + Address_PointerSize; // 16/24(+ 4 padding) T*
 	}
 }
 CUtlVector g_CUtlVector;
@@ -86,13 +86,13 @@ enum struct CAttributeList {
 
 	void Init() {
 		// vfptr = 0;
-		this.m_Attributes = PointerSize; //CUtlVector<CEconItemAttribute>
+		this.m_Attributes = Address_PointerSize; //CUtlVector<CEconItemAttribute>
 
-		if (PointerSize == view_as<Address>(8)) {
-			this.m_Attributes_m_Size = view_as<Address>(24); // m_Attributes + 16(sizeof(CUtlMemory), PointerSize + 4 + 4)
+		if (Address_PointerSize == view_as<Address>(8)) {
+			this.m_Attributes_m_Size = view_as<Address>(24); // m_Attributes + 16(sizeof(CUtlMemory), Address_PointerSize + 4 + 4)
 			this.m_pManager = view_as<Address>(40);
 		} else {
-			this.m_Attributes_m_Size = view_as<Address>(16); // m_Attributes + 12(sizeof(CUtlMemory), PointerSize + 4 + 4)
+			this.m_Attributes_m_Size = view_as<Address>(16); // m_Attributes + 12(sizeof(CUtlMemory), Address_PointerSize + 4 + 4)
 			this.m_pManager = view_as<Address>(24);
 		}
 	}
@@ -107,9 +107,9 @@ enum struct CEconItemAttribute {
 
 	void Init() {
 		//vfptr = 0;
-		this.m_iAttributeDefinitionIndex = PointerSize;
+		this.m_iAttributeDefinitionIndex = Address_PointerSize;
 
-		if (PointerSize == view_as<Address>(8)) {
+		if (Address_PointerSize == view_as<Address>(8)) {
 			this.m_flValue = view_as<Address>(12);
 			this.m_nRefundableCurrency = view_as<Address>(16);
 			this.iSizeOf = 24;
@@ -129,9 +129,9 @@ enum struct CEconItemAttributeDefinition {
 
 	void Init() {
 		// this.m_pKVAttribute = view_as<Address>(0);
-		this.m_nDefIndex = PointerSize;
+		this.m_nDefIndex = Address_PointerSize;
 
-		if (PointerSize == view_as<Address>(8)) {
+		if (Address_PointerSize == view_as<Address>(8)) {
 			this.m_pAttrType = view_as<Address>(16);
 			// this.m_bHidden = view_as<Address>(24);
 			// this.m_bWebSchemaOutputForced = view_as<Address>(25);
@@ -188,11 +188,11 @@ enum struct CEconItem
 	void Init() {
 		// GCSDK::CSharedObject {vfptr} = 0
 		// IEconItemInterface {vfptr} = pointersize
-		// this.m_pszSmallIcon = PointerSize * view_as<Address>(2); // 8/16
-		// this.m_pszLargeIcon = PointerSize * view_as<Address>(3); // 12/24
-		// this.m_ulID = PointerSize * view_as<Address>(4); // 16/32
+		// this.m_pszSmallIcon = Address_PointerSize * view_as<Address>(2); // 8/16
+		// this.m_pszLargeIcon = Address_PointerSize * view_as<Address>(3); // 12/24
+		// this.m_ulID = Address_PointerSize * view_as<Address>(4); // 16/32
 
-		if (PointerSize == view_as<Address>(8)) {
+		if (Address_PointerSize == view_as<Address>(8)) {
 			// this.m_unAccountID = view_as<Address>(40);
 			// this.m_unInventory = view_as<Address>(44);
 			// this.m_unDefIndex = view_as<Address>(48);
@@ -204,7 +204,7 @@ enum struct CEconItem
 			this.m_dirtyBits = view_as<Address>(55);
 			// this.m_EquipInstanceSingleton_m_unDefinitionIndex = view_as<Address>(56);
 			this.m_CustomAttribSingleton_m_unDefinitionIndex = view_as<Address>(64); // attribute_t + 0
-			this.m_CustomAttribSingleton_m_flValue = view_as<Address>(72);			 // attribute_t + PointerSize(alignment)
+			this.m_CustomAttribSingleton_m_flValue = view_as<Address>(72);			 // attribute_t + Address_PointerSize(alignment)
 			this.m_pCustomData = view_as<Address>(80);
 		} else {
 			// this.m_unAccountID = view_as<Address>(24);
@@ -218,7 +218,7 @@ enum struct CEconItem
 			this.m_dirtyBits = view_as<Address>(39);
 			// this.m_EquipInstanceSingleton_m_unDefinitionIndex = view_as<Address>(40);
 			this.m_CustomAttribSingleton_m_unDefinitionIndex = view_as<Address>(44); // attribute_t + 0
-			this.m_CustomAttribSingleton_m_flValue = view_as<Address>(48);			 // PointerSize(alignment)
+			this.m_CustomAttribSingleton_m_flValue = view_as<Address>(48);			 // Address_PointerSize(alignment)
 			this.m_pCustomData = view_as<Address>(52);
 		}
 	}
@@ -231,10 +231,10 @@ enum struct CEconItemDefinition {
 
 	void Init() {
 		// vfptr = 0;
-		// this.m_pKVItem = PointerSize;
-		// this.m_nDefIndex = PointerSize * view_as<Address>(2); // 8/16
+		// this.m_pKVItem = Address_PointerSize;
+		// this.m_nDefIndex = Address_PointerSize * view_as<Address>(2); // 8/16
 
-		if (PointerSize == view_as<Address>(8)) {
+		if (Address_PointerSize == view_as<Address>(8)) {
 			// this.m_nRemappedDefIndex = view_as<Address>(18);
 			// this.m_pszRemappedDefItemName = view_as<Address>(24);
 			// this.m_bEnabled = view_as<Address>(32);
@@ -246,7 +246,7 @@ enum struct CEconItemDefinition {
 			// this.m_nDefaultDropQuantity = view_as<Address>(38);
 			// this.m_unItemSeries = view_as<Address>(40);
 			this.m_vecStaticAttributes = view_as<Address>(48); // CUtlVector<static_attrib_t>, + 0: m_memory.m_pMemory
-			this.m_vecStaticAttributes_m_Size = view_as<Address>(56); // m_vecStaticAttributes + 16(sizeof(CUtlMemory), PointerSize + 4 + 4)
+			this.m_vecStaticAttributes_m_Size = view_as<Address>(56); // m_vecStaticAttributes + 16(sizeof(CUtlMemory), Address_PointerSize + 4 + 4)
 			// this.m_nPopularitySeed = view_as<Address>(80);
 			// this.m_pszItemBaseName = view_as<Address>(88);
 			// this.m_bProperName = view_as<Address>(96);
@@ -331,7 +331,7 @@ enum struct CEconItemDefinition {
 			// this.m_nDefaultDropQuantity = view_as<Address>(22);
 			// this.m_unItemSeries = view_as<Address>(24);
 			this.m_vecStaticAttributes = view_as<Address>(28); // CUtlVector<static_attrib_t>, + 0: m_memory.m_pMemory
-			this.m_vecStaticAttributes_m_Size = view_as<Address>(40); // m_vecStaticAttributes + 12(sizeof(CUtlMemory), PointerSize + 4 + 4)
+			this.m_vecStaticAttributes_m_Size = view_as<Address>(40); // m_vecStaticAttributes + 12(sizeof(CUtlMemory), Address_PointerSize + 4 + 4)
 			// this.m_nPopularitySeed = view_as<Address>(48);
 			// this.m_pszItemBaseName = view_as<Address>(52);
 			// this.m_bProperName = view_as<Address>(56);
@@ -416,8 +416,8 @@ enum struct static_attrib_t {
 
 	void Init() {
 		this.iDefIndex = view_as<Address>(0);
-		this.m_value = PointerSize; // alignment
-		this.iSizeOf = PointerSize * view_as<Address>(2);
+		this.m_value = Address_PointerSize; // alignment
+		this.iSizeOf = Address_PointerSize * view_as<Address>(2);
 	}
 }
 static_attrib_t g_static_attrib_t;
@@ -659,7 +659,7 @@ public void OnPluginStart() {
 	StartPrepSDKCall(SDKCall_Static);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CAttributeManager::ApplyAttributeStringWrapper");
 	PrepSDKCall_SetReturnInfo(SDKType_Address, SDKPass_Plain); // return string_t
-	if (PointerSize == view_as<Address>(4)) // Magically disappears on x64 linux
+	if (Address_PointerSize == view_as<Address>(4)) // Magically disappears on x64 linux
 		PrepSDKCall_AddParameter(SDKType_Address, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL); // return value
 	PrepSDKCall_AddParameter(SDKType_Address, SDKPass_Plain); // thisptr
 	PrepSDKCall_AddParameter(SDKType_Address, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // string_t initial value
@@ -1368,7 +1368,7 @@ public int Native_HookValueString(Handle plugin, int numParams) {
 		LoadStringFromAddress(LoadAddressFromAddress(pOutput), output, buflen);
 
 	} else if (hSDKAttributeApplyStringWrapperLinux) {
-		if (PointerSize == view_as<Address>(8)) {
+		if (Address_PointerSize == view_as<Address>(8)) {
 			// linux64 version
 			pOutput = SDKCall(hSDKAttributeApplyStringWrapperLinux, GetEntityAttributeManager(entity),
 				pInput, entity, pAttrClass, Address_Null);
