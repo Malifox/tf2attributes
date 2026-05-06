@@ -331,6 +331,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("TF2Attrib_ListDefIndices", Native_ListIDs);
 	CreateNative("TF2Attrib_GetStaticAttribs", Native_GetStaticAttribs);
 	CreateNative("TF2Attrib_GetSOCAttribs", Native_GetSOCAttribs);
+	CreateNative("TF2Attrib_IsNetworked", Native_IsNetworked);
 	CreateNative("TF2Attrib_IsIntegerValue", Native_IsIntegerValue);
 	CreateNative("TF2Attrib_IsValidAttributeName", Native_IsValidAttributeName);
 	CreateNative("TF2Attrib_AddCustomPlayerAttribute", Native_AddCustomAttribute);
@@ -522,7 +523,7 @@ public void OnPluginStart() {
 	StartPrepSDKCall(SDKCall_Static);
 	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Signature, "CAttributeManager::ApplyAttributeStringWrapper");
 	PrepSDKCall_SetReturnInfo(SDKType_Address, SDKPass_Plain); // return string_t
-	if (Address_PointerSize == view_as<Address>(4)) // Magically disappears on x64 linux
+	if (!Is64Bit()) // Magically disappears on x64 linux
 		PrepSDKCall_AddParameter(SDKType_Address, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL); // return value
 	PrepSDKCall_AddParameter(SDKType_Address, SDKPass_Plain); // thisptr
 	PrepSDKCall_AddParameter(SDKType_Address, SDKPass_Plain, VDECODE_FLAG_ALLOWNULL); // string_t initial value
@@ -679,7 +680,12 @@ public int Native_IsIntegerValue(Handle plugin, int numParams) {
 	return LoadFromAddress(pEconItemAttributeDefinition + g_CEconItemAttributeDefinition.m_bStoredAsInteger, NumberType_Int8);
 }
 
-static int GetStaticAttribs(Address pItemDef, int[] iAttribIndices, int[] iAttribValues, int size = 16) {
+enum struct AttribData {
+	float flValue;
+	Address pAddress;
+}
+
+static int GetStaticAttribs(Address pItemDef, int[] iAttribIndices, AttribData[] attribData, int size = 16) {
 	AssertValidAddress(pItemDef);
 
 	// 0x1C = CEconItemDefinition.m_Attributes (type CUtlVector<static_attrib_t>)
@@ -696,9 +702,13 @@ static int GetStaticAttribs(Address pItemDef, int[] iAttribIndices, int[] iAttri
 	for (int i = 0; i < iNumAttribs && i < size; i++) {
 		Address pStaticAttrib = pAttribList + view_as<Address>(i * g_static_attrib_t.iSizeOf);
 		iAttribIndices[i] = LoadFromAddress(pStaticAttrib, NumberType_Int16); // g_static_attrib_t.iDefIndex
-		iAttribValues[i] = IsNetworkedByDefIndex(iAttribIndices[i])
-			? LoadFromAddress(pStaticAttrib + g_static_attrib_t.m_value, NumberType_Int32)
-			: LoadAddressFromAddress(pStaticAttrib + g_static_attrib_t.m_value);
+		if (IsNetworkedByDefIndex(iAttribIndices[i])) {
+			attribData[i].flValue = view_as<float>(LoadFromAddress(pStaticAttrib + g_static_attrib_t.m_value, NumberType_Int32));
+			attribData[i].pAddress = Address_Null;
+		} else {
+			attribData[i].flValue = 0.0; // TODO see if NaN is better
+			attribData[i].pAddress = LoadAddressFromAddress(pStaticAttrib + g_static_attrib_t.m_value);
+		}
 	}
 	return iNumAttribs;
 }
@@ -723,14 +733,25 @@ public int Native_GetStaticAttribs(Handle plugin, int numParams) {
 	Address pItemDef = SDKCall(hSDKGetItemDefinition, pSchema, iItemDefIndex);
 	AssertValidAddress(pItemDef);
 
-	int[] iAttribIndices = new int[size]; int[] iAttribValues = new int[size];
-	int iCount = GetStaticAttribs(pItemDef, iAttribIndices, iAttribValues, size);
+	int[] iAttribIndices = new int[size];
+	AttribData[] attribData = new AttribData[size];
+	int iCount = GetStaticAttribs(pItemDef, iAttribIndices, attribData, size);
+
+	int[] iAttribValues = new int[size];
+	for (int i = 0; i < iCount; i++) {
+		if (attribData[i].pAddress == Address_Null) {
+			iAttribValues[i] = view_as<int>(attribData[i].flValue);
+		} else if (!Is64Bit()) {
+			// Truncates the upper 32 bits of the address; only safe on 32-bit where addresses fit in 4 bytes.
+			iAttribValues[i] = view_as<int>(attribData[i].pAddress);
+		}
+	}
 	SetNativeArray(2, iAttribIndices, size);
 	SetNativeArray(3, iAttribValues, size);	//cast to float on inc side
 	return iCount;
 }
 
-static int GetSOCAttribs(int iEntity, int[] iAttribIndices, int[] iAttribValues, int size = 16) {
+static int GetSOCAttribs(int iEntity, int[] iAttribIndices, AttribData[] attribData, int size = 16) {
 	if (size <= 0) {
 		return -1;
 	}
@@ -765,9 +786,13 @@ static int GetSOCAttribs(int iEntity, int[] iAttribIndices, int[] iAttribValues,
 			Address pSOCAttribEntry = pCustomDataArray + view_as<Address>(i * g_static_attrib_t.iSizeOf);
 
 			iAttribIndices[i] = LoadFromAddress(pSOCAttribEntry, NumberType_Int16); // g_static_attrib_t.iDefIndex
-			iAttribValues[i] = IsNetworkedByDefIndex(iAttribIndices[i])
-				? LoadFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value, NumberType_Int32)
-				: LoadAddressFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value);
+			if (IsNetworkedByDefIndex(iAttribIndices[i])) {
+				attribData[i].flValue = view_as<float>(LoadFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value, NumberType_Int32));
+				attribData[i].pAddress = Address_Null;
+			} else {
+				attribData[i].flValue = 0.0;
+				attribData[i].pAddress = LoadAddressFromAddress(pSOCAttribEntry + g_static_attrib_t.m_value);
+			}
 		}
 		return iCount;
 	}
@@ -776,7 +801,13 @@ static int GetSOCAttribs(int iEntity, int[] iAttribIndices, int[] iAttribValues,
 	bool hasInternalAttribute = !!(LoadFromAddress(pEconItem + g_CEconItem.m_dirtyBits, NumberType_Int8) & 0b100);
 	if (hasInternalAttribute) {
 		iAttribIndices[0] = LoadFromAddress(pEconItem + g_CEconItem.m_CustomAttribSingleton_m_unDefinitionIndex, NumberType_Int16);
-		iAttribValues[0] = LoadFromAddress(pEconItem + g_CEconItem.m_CustomAttribSingleton_m_flValue, NumberType_Int32);
+		if (IsNetworkedByDefIndex(iAttribIndices[0])) {
+			attribData[0].flValue = view_as<float>(LoadFromAddress(pEconItem + g_CEconItem.m_CustomAttribSingleton_m_flValue, NumberType_Int32));
+			attribData[0].pAddress = Address_Null;
+		} else {
+			attribData[0].flValue = 0.0;
+			attribData[0].pAddress = LoadAddressFromAddress(pEconItem + g_CEconItem.m_CustomAttribSingleton_m_flValue);
+		}
 		return 1;
 	}
 	return 0;
@@ -798,12 +829,29 @@ public int Native_GetSOCAttribs(Handle plugin, int numParams) {
 		return ThrowNativeError(SP_ERROR_NATIVE, "Entity %d (%d) is invalid", EntIndexToEntRef(iEntity), iEntity);
 	}
 
-	//maybe move some address stuff to here from the stock, but for now it's okay
-	int[] iAttribIndices = new int[size]; int[] iAttribValues = new int[size];
-	int iCount = GetSOCAttribs(iEntity, iAttribIndices, iAttribValues, size);
+	int[] iAttribIndices = new int[size];
+	AttribData[] attribData = new AttribData[size];
+	int iCount = GetSOCAttribs(iEntity, iAttribIndices, attribData, size);
+
+	int[] iAttribValues = new int[size];
+	for (int i = 0; i < iCount; i++) {
+		if (attribData[i].pAddress == Address_Null) {
+			iAttribValues[i] = view_as<int>(attribData[i].flValue);
+		} else if (!Is64Bit()) {
+			// Truncates the upper 32 bits of the address; only safe on 32-bit where addresses fit in 4 bytes.
+			iAttribValues[i] = view_as<int>(attribData[i].pAddress);
+		}
+	}
 	SetNativeArray(2, iAttribIndices, size);
 	SetNativeArray(3, iAttribValues, size);	//cast to float on inc side
 	return iCount;
+}
+
+
+/* native bool TF2Attrib_IsNetworked(int iDefIndex); */
+public int Native_IsNetworked(Handle plugin, int numParams) {
+	int iDefIndex = GetNativeCell(1);
+	return IsNetworkedByDefIndex(iDefIndex);
 }
 
 /* native bool TF2Attrib_SetByName(int iEntity, char[] strAttrib, float flValue); */
@@ -1231,7 +1279,7 @@ public int Native_HookValueString(Handle plugin, int numParams) {
 		LoadStringFromAddress(LoadAddressFromAddress(pOutput), output, buflen);
 
 	} else if (hSDKAttributeApplyStringWrapperLinux) {
-		if (Address_PointerSize == view_as<Address>(8)) {
+		if (Is64Bit()) {
 			// linux64 version
 			pOutput = SDKCall(hSDKAttributeApplyStringWrapperLinux, GetEntityAttributeManager(entity),
 				pInput, entity, pAttrClass, Address_Null);
@@ -1280,7 +1328,7 @@ static Address GetEntityAttributeList(int entity) {
 
 static Address GetAttributeDefinitionByName(const char[] name) {
 	Address cachedResult;
-	if (g_AttributeDefinitionMapping.GetValue(name, cachedResult)) {
+	if (StringMap_GetAddress(g_AttributeDefinitionMapping, name, cachedResult)) {
 		return cachedResult;
 	}
 
@@ -1289,7 +1337,7 @@ static Address GetAttributeDefinitionByName(const char[] name) {
 		return Address_Null;
 	}
 	cachedResult = SDKCall(hSDKGetAttributeDefByName, pSchema, name);
-	g_AttributeDefinitionMapping.SetValue(name, cachedResult);
+	StringMap_SetAddress(g_AttributeDefinitionMapping, name, cachedResult);
 	return cachedResult;
 }
 
@@ -1333,7 +1381,7 @@ static Address GetEntityAttributeManager(int entity) {
  */
 static bool InitializeAttributeValue(Address pAttributeList, int attrdef, const char[] value) {
 	Address pAttrDef = GetAttributeDefinitionByID(attrdef);
-	if (!pAttrDef) {
+	if (pAttrDef == Address_Null) {
 		return false;
 	}
 
@@ -1342,10 +1390,16 @@ static bool InitializeAttributeValue(Address pAttributeList, int attrdef, const 
 	bool networked = IsNetworkedRuntimeAttribute(pDefType);
 
 	if (!networked) {
+		if (Is64Bit()) {
+			return false;
+		}
+
 		// reusing any existing matching attribute value strings
 		Address rawAttributeValue = GetHeapManagedAttributeString(attrdef, value); // This assumes the union value type will be a pointer
-		if (rawAttributeValue) {
-			SDKCall(hSDKSetRuntimeValue, pAttributeList, pAttrDef, view_as<float>(rawAttributeValue));
+
+		if (rawAttributeValue != Address_Null) {
+			// Truncates the upper 32 bits of the address; only safe on 32-bit where addresses fit in 4 bytes.
+			SDKCall(hSDKSetRuntimeValue, pAttributeList, pAttrDef, view_as<float>(view_as<int>(rawAttributeValue)));
 			return true;
 		}
 
@@ -1362,14 +1416,14 @@ static bool InitializeAttributeValue(Address pAttributeList, int attrdef, const 
 
 		if (!SDKCall(hSDKAttributeValueFromString_Virtual, pDefType, pAttrDef, value, rawAttributeValue, true)) {
 			// in case AttributeValueInitialize created a pointer, unload it
-			if (rawAttributeValue)
+			if (rawAttributeValue != Address_Null)
 				UnloadAttributeRawValue(pAttrDef, rawAttributeValue);
 			// we couldn't parse the attribute value, abort
 			return false;
 		}
 
-		// This wizardry happens to still work because virtual addresses are always 4 bytes
-		SDKCall(hSDKSetRuntimeValue, pAttributeList, pAttrDef, view_as<float>(rawAttributeValue));
+		// Truncates the upper 32 bits of the address; only safe on 32-bit where addresses fit in 4 bytes.
+		SDKCall(hSDKSetRuntimeValue, pAttributeList, pAttrDef, view_as<float>(view_as<int>(rawAttributeValue)));
 
 		// add to our managed values
 		// this definitely works for heap, not sure if it works for inline
@@ -1444,7 +1498,7 @@ bool IsNetworkedByDefIndex(int attrdef) {
 	}
 
 	Address pAttrDef = GetAttributeDefinitionByID(attrdef);
-	if (!pAttrDef) {
+	if (pAttrDef == Address_Null) {
 		return false;
 	}
 
@@ -1470,7 +1524,7 @@ static void UnloadAttributeRawValue(Address pAttrDef, Address pAttributeValue) {
 static bool IsAttributeString(int attrdef) {
 	Address pAttrDef = GetAttributeDefinitionByID(attrdef);
 	Address pKnownStringAttribDef = GetAttributeDefinitionByName("cosmetic taunt sound");
-	return pAttrDef && pKnownStringAttribDef
+	return pAttrDef != Address_Null && pKnownStringAttribDef != Address_Null
 		&& LoadAddressFromAddress(pAttrDef + g_CEconItemAttributeDefinition.m_pAttrType) == LoadAddressFromAddress(pKnownStringAttribDef + g_CEconItemAttributeDefinition.m_pAttrType);
 }
 
@@ -1536,7 +1590,7 @@ static void RemoveNonNetworkedRuntimeAttributesOnEntities() {
 			int attrdef = LoadFromAddress(pAttributeEntry + g_CEconItemAttribute.m_iAttributeDefinitionIndex, NumberType_Int16);
 
 			Address pAttrDef = GetAttributeDefinitionByID(attrdef);
-			if (!pAttrDef) {
+			if (pAttrDef == Address_Null) {
 				// this shouldn't happen, but just in case
 				continue;
 			}
@@ -1546,7 +1600,7 @@ static void RemoveNonNetworkedRuntimeAttributesOnEntities() {
 				continue;
 			}
 
-			any rawValue = LoadFromAddress(pAttributeEntry + g_CEconItemAttribute.m_flValue, NumberType_Int32);
+			Address rawValue = LoadAddressFromAddress(pAttributeEntry + g_CEconItemAttribute.m_flValue);
 
 			// allow plugins to `TF2Attrib_Set*()` their own instances undisturbed by only
 			// processing attributes that we're aware of
@@ -1591,7 +1645,7 @@ void DestroyManagedAllocatedValues() {
 	}
 }
 
-bool IsAttributeValueInHeap(any rawValue) {
+bool IsAttributeValueInHeap(Address rawValue) {
 	for (int i, n = g_ManagedAllocatedValues.Length; i < n; i++) {
 		HeapAttributeValue a;
 		g_ManagedAllocatedValues.GetArray(i, a, sizeof(a));
@@ -1603,6 +1657,32 @@ bool IsAttributeValueInHeap(any rawValue) {
 	return false;
 }
 
+stock bool Is64Bit() {
+	return Address_PointerSize == view_as<Address>(8);
+}
+
+stock void Address_ToIntArray(Address addr, int arr[2]) {
+	arr[0] = view_as<int>(addr);
+	arr[1] = view_as<int>(addr >> 32);
+}
+
+stock Address IntArray_ToAddress(const int arr[2]) {
+	return view_as<Address>(arr[0]) | (view_as<Address>(arr[1]) << 32);
+}
+
+stock bool StringMap_GetAddress(StringMap map, const char[] key, Address &value) {
+	int arr[2];
+	bool ok = map.GetArray(key, arr, 2);
+	if (ok) value = IntArray_ToAddress(arr);
+	return ok;
+}
+
+stock void StringMap_SetAddress(StringMap map, const char[] key, Address value) {
+	int arr[2];
+	Address_ToIntArray(value, arr);
+	map.SetArray(key, arr, 2);
+}
+
 /**
  * Inserts a string into the game's string pool.  This uses the same implementation that is in
  * SourceMod's core:
@@ -1611,7 +1691,7 @@ bool IsAttributeValueInHeap(any rawValue) {
  */
 stock Address AllocPooledString(const char[] value) {
 	Address pValue;
-	if (g_AllocPooledStringCache.GetValue(value, pValue)) {
+	if (StringMap_GetAddress(g_AllocPooledStringCache, value, pValue)) {
 		return pValue;
 	}
 
@@ -1631,7 +1711,7 @@ stock Address AllocPooledString(const char[] value) {
 	pValue = LoadAddressFromAddress(pEntity_m_iName);
 	StoreAddressToAddress(pEntity_m_iName, pOrig);
 
-	g_AllocPooledStringCache.SetValue(value, pValue);
+	StringMap_SetAddress(g_AllocPooledStringCache, value, pValue);
 	return pValue;
 }
 
