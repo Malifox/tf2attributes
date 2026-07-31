@@ -1,7 +1,6 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#include <virtual_address>
 #include <tf2_stocks>
 #include <tf2attributes>
 

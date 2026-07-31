@@ -81,7 +81,7 @@
 			{
 				"library"			"server"
 				"windows"			"\xE8\x2A\x2A\x2A\x2A\x83\xC0\x04\xC3"
-				"windows64"			"\x48\x83\xEC\x28\xE8\x2A\x2A\x2A\x2A\x48\x83\xC0\x08"
+				"windows64"			"\x48\x83\xEC\x28\xE8\xD7\x94\x00\x00\x48\x83\xC0\x08"
 				"linux"				"@_Z15GEconItemSchemav"
 				"linux64"			"@_Z15GEconItemSchemav"
 				"mac"				"@_Z15GEconItemSchemav"

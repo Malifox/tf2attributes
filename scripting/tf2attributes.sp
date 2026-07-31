@@ -992,7 +992,8 @@ public int Native_Remove(Handle plugin, int numParams) {
 		return ThrowNativeError(SP_ERROR_NATIVE, "Attribute name '%s' is invalid", strAttrib);
 	}
 
-	SDKCall(hSDKRemoveAttribute, pEntAttributeList, pAttribDef);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
+	Address discard;
+	SDKCall(hSDKRemoveAttribute, pEntAttributeList, discard, pAttribDef);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
 	return true;
 }
 
@@ -1015,7 +1016,8 @@ public int Native_RemoveByID(Handle plugin, int numParams) {
 		return ThrowNativeError(SP_ERROR_NATIVE, "Attribute index %d is invalid", iAttrib);
 	}
 
-	SDKCall(hSDKRemoveAttribute, pEntAttributeList, pAttribDef);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
+	Address discard;
+	SDKCall(hSDKRemoveAttribute, pEntAttributeList, discard, pAttribDef);	//Not a clue what the return is here, but it's probably a clone of the attrib being removed
 	return true;
 }
 
@@ -1303,7 +1305,9 @@ public int Native_HookValueString(Handle plugin, int numParams) {
 /* helper functions */
 
 static Address GetItemSchema() {
-	return SDKCall(hSDKSchema);
+	Address schema;
+	SDKCall(hSDKSchema, schema);
+	return schema;
 }
 
 static Address GetEntityEconItemView(int entity) {
@@ -1336,7 +1340,7 @@ static Address GetAttributeDefinitionByName(const char[] name) {
 	if (!pSchema) {
 		return Address_Null;
 	}
-	cachedResult = SDKCall(hSDKGetAttributeDefByName, pSchema, name);
+	SDKCall(hSDKGetAttributeDefByName, pSchema, cachedResult, name);
 	StringMap_SetAddress(g_AttributeDefinitionMapping, name, cachedResult);
 	return cachedResult;
 }
@@ -1346,7 +1350,10 @@ static Address GetAttributeDefinitionByID(int id) {
 	if (!pSchema) {
 		return Address_Null;
 	}
-	return SDKCall(hSDKGetAttributeDef, pSchema, id);
+	
+	Address pDef;
+	SDKCall(hSDKGetAttributeDef, pSchema, pDef, id);
+	return pDef;
 }
 
 /**
